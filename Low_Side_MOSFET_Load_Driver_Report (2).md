@@ -266,8 +266,8 @@ Two test points using footprint `TestPoint_THTPad_D1.0mm` are included:
 ### 5.1 Board Outline and Mechanical Constraints
 
 The board outline is a closed rectangle on the `Edge.Cuts` layer measuring **39.37 mm × 27.94 mm**, visible in Figures 5, 6, and 7. The outline was verified to be fully closed by the DRC board-outline check at final submission. A copper-to-edge clearance of 0.5 mm is maintained throughout, consistent with the design rules documented in Table 3.
-**Figure 5**
-<img width="1034" height="697" alt="スクリーンショット 2026-05-31 015135" src="https://github.com/user-attachments/assets/ec5f8393-b40a-4153-aba1-9bcd54cf0ac1" />
+> **Figure 5**
+> <img width="1034" height="697" alt="スクリーンショット 2026-05-31 015135" src="https://github.com/user-attachments/assets/ec5f8393-b40a-4153-aba1-9bcd54cf0ac1" />
 
 
 ### 5.2 Component Placement Strategy
@@ -309,10 +309,10 @@ Reference designators and net labels are included on the F.Cu silkscreen. As con
 Figure 6 shows the top view from the KiCad 3D Viewer. All SMD components are visible on the top surface. The SOT-23 package (Q1), the SMA diode (D1), the 0805 capacitors and LED, the 0603 resistors, and the pin headers are all present and oriented consistently with the schematic. The test points TP1 and TP2 are visible as yellow pads. The board outline and GND copper fill are confirmed by the board shape.
 
 Figure 7 shows the bottom view, confirming that the through-hole connector legs (J1, J2, J3) and test point pins protrude through the board and are available for soldering.
-**Figure 6**
-<img width="1020" height="751" alt="スクリーンショット 2026-05-31 062012" src="https://github.com/user-attachments/assets/99108505-532c-4583-a931-2396b213c7aa" />
-**Figure 7**
-<img width="852" height="641" alt="スクリーンショット 2026-05-31 062022" src="https://github.com/user-attachments/assets/781db0c6-1dea-4f74-8a97-71dee9621af5" />
+> **Figure 6**
+> <img width="1020" height="751" alt="スクリーンショット 2026-05-31 062012" src="https://github.com/user-attachments/assets/99108505-532c-4583-a931-2396b213c7aa" />
+> **Figure 7**
+> <img width="852" height="641" alt="スクリーンショット 2026-05-31 062022" src="https://github.com/user-attachments/assets/781db0c6-1dea-4f74-8a97-71dee9621af5" />
 
 
 
@@ -514,8 +514,8 @@ Table 8 summarises the final verification status of the project.
 
 The ERC, shown in Figure 2, reports **0 errors** and **2 warnings**. Both warnings arise from the same cause: KiCad detects that two different labels are attached to the same net node and notifies the designer which name will take precedence in the netlist.
 
-**Figure 2**
-<img width="1237" height="609" alt="スクリーンショット 2026-05-30 122352" src="https://github.com/user-attachments/assets/ca5ce4cb-b1c2-4140-8508-9ffbbd8d4736" />
+> **Figure 2**
+> <img width="1237" height="609" alt="スクリーンショット 2026-05-30 122352" src="https://github.com/user-attachments/assets/ca5ce4cb-b1c2-4140-8508-9ffbbd8d4736" />
 
 
 The two warnings are:
@@ -599,8 +599,8 @@ In KiCad, this is commonly achieved by placing `PWR_FLAG` symbols on the externa
 ### Problem 2: Missing GND Connections on F.Cu (DRC Errors)
 
 **Symptom:** During PCB verification, the Design Rule Check (DRC) reported multiple **"Missing connection between items"** errors involving pads assigned to the GND net. As shown in Figure 3, the reported errors included missing copper connections between several GND-connected pads on the top copper layer (F.Cu).
-**Figure 3**
-<img width="809" height="721" alt="スクリーンショット 2026-05-31 015000" src="https://github.com/user-attachments/assets/08e6cf50-8eca-4b30-b5f6-1cd8ba83e615" />
+> **Figure 3**
+> <img width="809" height="721" alt="スクリーンショット 2026-05-31 015000" src="https://github.com/user-attachments/assets/08e6cf50-8eca-4b30-b5f6-1cd8ba83e615" />
 
 
 Examples reported by DRC included:
@@ -611,8 +611,8 @@ Examples reported by DRC included:
 - R2 Pad 2 (GND) ↔ Q1 Source Pad (GND)
 
 Figure 4 shows the PCB layout at the stage when these errors were generated. Although the pads were correctly assigned to the GND net in the schematic and netlist, DRC detected that no valid copper connection existed between several of the associated pads.
-**Figure 4**
-<img width="1039" height="710" alt="スクリーンショット 2026-05-31 012622" src="https://github.com/user-attachments/assets/5d604998-b782-4ddc-a777-2b02d3f5e552" />
+> **Figure 4**
+> <img width="1039" height="710" alt="スクリーンショット 2026-05-31 012622" src="https://github.com/user-attachments/assets/5d604998-b782-4ddc-a777-2b02d3f5e552" />
 
 
 **Root Cause:** At this stage of the design, a GND copper zone had been created only on the B.Cu layer. Several GND-connected pads were located on F.Cu and were not connected by traces, vias, or an F.Cu copper zone. As a result, these pads belonged to the same logical net but were not physically connected in the PCB layout.
