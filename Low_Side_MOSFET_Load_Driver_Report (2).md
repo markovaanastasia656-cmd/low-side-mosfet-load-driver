@@ -186,7 +186,8 @@ Power trace width was determined by referencing IPC-2152 external conductor guid
 Figure 1 shows the final schematic. The design is organised into three functional blocks: the power input and decoupling block (left), the MOSFET switching block (centre), and the gate drive, indicator, and test point block (right). The schematic was drawn in KiCad Schematic Editor with net labels used to connect functional sections without crossing wires.
 
 > **Figure 1** — Final schematic of the Low-Side MOSFET Load Driver  
-> *(Source: `スクリーンショット_2026-05-31_061710.png`)*
+> <img width="1422" height="598" alt="スクリーンショット 2026-05-30 122322" src="https://github.com/user-attachments/assets/20d4cdde-d853-4f50-b361-1728b7d6896c" />
+
 
 The visible net labels in the schematic are: `VIN`, `GND`, `SIG`, `GATE`, `DRAIN`, `LOAD+`, `LOAD−`, and `SOURCE`. Two `PWR_FLAG` symbols are present — one on the VIN net at J1 and one on the GND net at J3 — as required by KiCad to satisfy the ERC power-pin connectivity check.
 
@@ -225,21 +226,31 @@ J3 (`PinHeader_1x02_P2.54mm_Vertical`) provides the sole logic interface to the 
 
 ### 4.7 LED Drain Indicator
 
-The indicator circuit consists of R3 (3.3 kΩ, `R_0603_1608Metric`) and D2 (LED, `LED_SMD:LED_0805_2012Metric`), connected in series from the DRAIN net to GND. When Q1 is off, the DRAIN node is pulled to VIN through the load, forward-biasing D2 through R3. When Q1 is on, DRAIN is pulled near GND and D2 extinguishes. D2 therefore illuminates when the load is off and turns off when the load is on — a complementary state indicator.
+The indicator circuit consists of R3 (3.3 kΩ, `R_0603_1608Metric`) and D2 (`LED_SMD:LED_0805_2012Metric`), connected in series between the DRAIN net and GND.
 
-LED current at 12 V supply:
+The purpose of the indicator is to provide a visual indication of the voltage present at the MOSFET drain node. When Q1 is turned on, the drain is pulled close to ground potential and little or no voltage appears across the LED circuit, causing D2 to remain off.
 
-```
+When Q1 is turned off and a load is connected between VIN and the DRAIN node, the drain voltage rises toward VIN through the load. Under these conditions, current flows through R3 and D2, causing the LED to illuminate.
+
+Therefore, the LED acts as an indicator of drain voltage rather than a direct indicator of gate-drive status. This approach provides additional diagnostic value because it reflects the actual state of the switching node rather than merely indicating the logic signal applied to the gate.
+
+For a 12 V supply and an LED forward voltage of approximately 2.0 V:
+
+```text
 I_LED = (V_DRAIN - V_f) / R3
-      = (12 V − 2.0 V) / 3 300 Ω
+      = (12 V - 2.0 V) / 3300 Ω
       ≈ 3.0 mA
 ```
 
-Power in R3:
+Power dissipation in R3 is:
 
+```text
+P_R3 = I²R
+     = (0.003 A)² × 3300 Ω
+     ≈ 0.030 W
 ```
-P_R3 = I² × R = (0.003 A)² × 3 300 Ω = 0.030 W   [30 mW — within 100 mW 0603 rating]
-```
+
+This is well below the typical 0603 resistor power rating of 0.1 W.
 
 ### 4.8 Test Points
 
@@ -255,6 +266,9 @@ Two test points using footprint `TestPoint_THTPad_D1.0mm` are included:
 ### 5.1 Board Outline and Mechanical Constraints
 
 The board outline is a closed rectangle on the `Edge.Cuts` layer measuring **39.37 mm × 27.94 mm**, visible in Figures 5, 6, and 7. The outline was verified to be fully closed by the DRC board-outline check at final submission. A copper-to-edge clearance of 0.5 mm is maintained throughout, consistent with the design rules documented in Table 3.
+**Figure 5**
+<img width="1034" height="697" alt="スクリーンショット 2026-05-31 015135" src="https://github.com/user-attachments/assets/ec5f8393-b40a-4153-aba1-9bcd54cf0ac1" />
+
 
 ### 5.2 Component Placement Strategy
 
@@ -295,6 +309,12 @@ Reference designators and net labels are included on the F.Cu silkscreen. As con
 Figure 6 shows the top view from the KiCad 3D Viewer. All SMD components are visible on the top surface. The SOT-23 package (Q1), the SMA diode (D1), the 0805 capacitors and LED, the 0603 resistors, and the pin headers are all present and oriented consistently with the schematic. The test points TP1 and TP2 are visible as yellow pads. The board outline and GND copper fill are confirmed by the board shape.
 
 Figure 7 shows the bottom view, confirming that the through-hole connector legs (J1, J2, J3) and test point pins protrude through the board and are available for soldering.
+**Figure 6**
+<img width="1020" height="751" alt="スクリーンショット 2026-05-31 062012" src="https://github.com/user-attachments/assets/99108505-532c-4583-a931-2396b213c7aa" />
+**Figure 7**
+<img width="852" height="641" alt="スクリーンショット 2026-05-31 062022" src="https://github.com/user-attachments/assets/781db0c6-1dea-4f74-8a97-71dee9621af5" />
+
+
 
 ---
 
@@ -302,64 +322,94 @@ Figure 7 shows the bottom view, confirming that the through-hole connector legs 
 
 ### 6.1 Decoupling Capacitor Placement
 
-C1 (100 nF, `C_0603_1608Metric`) and C2 (10 µF, `C_0805_2012Metric`) are placed adjacent to J1, the power input connector, minimising the impedance between the supply entry point and the decoupling capacitors. When Q1 switches and load current changes rapidly, the decoupling capacitors supply the transient current locally without requiring it to travel through the full supply wiring inductance from the external source.
+C1 (100 nF, `C_0603_1608Metric`) and C2 (10 µF, `C_0805_2012Metric`) are placed close to the power input connector J1, as shown in Figures 5 and 6. Locating the decoupling network near the supply entry point reduces the impedance between the external supply and the local PCB power distribution network.
 
-The 100 nF ceramic (C1) provides low impedance at high frequencies (effective above approximately 1 MHz for X7R dielectric). The 10 µF bulk capacitor (C2) supplies energy for lower-frequency transients and ensures VIN remains stable during load switching.
+The 100 nF ceramic capacitor provides high-frequency decoupling, while the 10 µF capacitor provides local bulk energy storage. Together, they help maintain a stable supply voltage during load-switching events and reduce sensitivity to supply-cable inductance.
 
 ### 6.2 Return Current Path and Loop Area Minimisation
 
-The primary high-current conduction loop follows this path:
+The primary load-current path is:
 
+```text
+VIN (J1 Pin 1)
+   → J2 Pin 1 (LOAD+)
+   → External Load
+   → J2 Pin 2 (LOAD− / DRAIN)
+   → Q1 Drain
+   → Q1 Source
+   → GND Network
+   → J1 Pin 2
 ```
-VIN (J1 Pin 1) → VIN trace → J2 Pin 1 (LOAD+)
-                             → External load
-                             → J2 Pin 2 (LOAD−/DRAIN) → DRAIN trace → Q1 Drain
-                                                                      → Q1 Source → GND zone
-                                                                                  → J1 Pin 2 → Supply return
-```
 
-The GND zone on B.Cu carries the return current directly beneath the forward (VIN) path on F.Cu. By keeping the forward and return conductors in proximity on adjacent copper layers, the enclosed area of the high-current loop is minimised. A smaller loop area reduces the magnetic flux associated with load-current switching, which lowers both common-mode and differential-mode radiated emissions.
+As shown in Figure 5, GND copper zones are present on both F.Cu and B.Cu layers. These copper areas provide a low-impedance return path for load current and help reduce unnecessary current-loop area within the PCB.
 
-### 6.3 Ground Plane Continuity
+Reducing loop area lowers parasitic inductance and helps minimise electromagnetic emissions generated during switching transitions.
 
-The GND zones on F.Cu and B.Cu are kept continuous across the board area. No signal traces were routed in a manner that interrupts the GND zone under the main power path. The gate signal trace and the J3 logic connector are located in the lower half of the board, physically separated from the VIN/DRAIN power path in the upper half, avoiding unintentional electromagnetic coupling between the fast-switching drain node and the gate drive trace.
+### 6.3 Ground Plane Implementation
 
-### 6.4 Gate Drive and EMI
+A GND copper zone is implemented on both F.Cu and B.Cu and assigned to the GND net. The final implementation is shown in Figure 5.
 
-The 47 Ω series gate resistor (R1) limits the gate charge current and slows the rate at which V_GS rises. For a DC on/off application (not continuous PWM), 47 Ω is conservative and provides effective reduction of high-frequency spectral content at the drain switching edge without meaningfully affecting switching response time. R2 (100 kΩ) ensures Q1 remains off under any undefined or floating logic-input condition, eliminating the risk of uncontrolled partial enhancement.
+During development, an earlier PCB revision contained only a B.Cu GND zone. As discussed in Section 10, this resulted in several GND-connected pads on F.Cu remaining electrically unconnected, which was detected by DRC. The final design resolves this issue by providing GND copper on both layers.
 
-The gate drive trace length is short — R1 is placed directly adjacent to the Q1 gate pin, as visible in Figure 6 — minimising gate trace inductance. This reduces the risk of oscillatory gate ringing at switch-on, which would cause higher peak drain currents and radiated emissions.
+The dual-layer ground implementation improves electrical connectivity, simplifies routing, and provides additional copper area for current return paths.
+
+### 6.4 Gate Drive and EMI Considerations
+
+The MOSFET gate is driven through R1 (47 Ω), which is connected in series between the SIG input and the AO3400A gate.
+
+The resistor limits instantaneous gate-charging current and reduces the edge rate of the gate voltage transition. Although the circuit is intended for simple on/off load switching rather than high-frequency PWM operation, controlling switching-edge speed can help reduce high-frequency noise generation.
+
+R2 (100 kΩ) provides a pull-down path from the gate to GND. This ensures that Q1 remains turned off whenever the logic input is disconnected or left floating.
+
+As shown in Figures 5 and 6, R1 is placed close to the MOSFET gate connection, keeping the gate-routing length short and reducing susceptibility to unwanted noise pickup.
 
 ### 6.5 Thermal Analysis
 
-Power dissipation in Q1 is dominated by conduction loss in R_DS(on). Table 5 summarises the computed dissipation.
+The dominant power loss in Q1 is MOSFET conduction loss, which can be estimated from:
 
-**Table 5: Power dissipation calculations**
+P = I² × R_DS(on)
 
-| Load Current | R_DS(on) | P = I² × R_DS(on) | Comment |
-|-------------|----------|-------------------|---------|
-| 1.0 A (nominal) | 50 mΩ | **0.05 W** | Nominal operating condition |
-| 2.0 A (design maximum) | 50 mΩ | **0.20 W** | Design-current worst case |
+Using the AO3400A typical on-resistance of approximately 50 mΩ at logic-level gate drive, the estimated conduction losses are shown in Table 5.
 
-At 0.20 W dissipated in a SOT-23 package (typical θ_JA ≈ 300 °C/W in still air), the theoretical junction temperature rise above ambient is:
+**Table 5: Estimated MOSFET conduction loss**
 
+| Load Current | Assumed R_DS(on) | Power Dissipation |
+|-------------|------------------|------------------|
+| 1.0 A | 50 mΩ (typ.) | 0.05 W |
+| 2.0 A | 50 mΩ (typ.) | 0.20 W |
+
+A simplified thermal estimate can be obtained using:
+
+```text
+ΔT_J = P × θ_JA
 ```
-ΔT_J = P × θ_JA = 0.20 W × 300 °C/W = 60 °C
+
+Assuming:
+
+```text
+P = 0.20 W
+θ_JA ≈ 100–300 °C/W
 ```
 
-At a 25 °C ambient this yields approximately 85 °C junction temperature, within the AO3400A rated maximum of 150 °C. In practice, the GND copper zones connected to the Q1 source pad provide additional thermal spreading beyond the package datasheet still-air assumption, reducing the effective thermal resistance and improving the margin further.
+the estimated junction-temperature rise is:
 
-**Table 6: Trace width design summary**
+```text
+ΔT_J ≈ 20–60 °C
+```
+
+The actual thermal performance depends strongly on PCB copper area, airflow, mounting conditions, and operating duty cycle. Because the AO3400A datasheet specifies different thermal resistances for different PCB conditions, the calculation above should be regarded as an engineering estimate rather than a guaranteed worst-case result.
+
+As shown in Figure 5, the MOSFET is connected to relatively large copper areas through the source and drain connections. These copper regions provide additional heat spreading and are expected to reduce the effective thermal resistance compared with a minimal-footprint SOT-23 installation.
+
+**Table 6: Trace Width Design Summary**
 
 | Net | Design Current | Selected Width | Rationale |
-|-----|---------------|----------------|-----------|
-| VIN | 2.0 A | 2.0 mm | IPC-2152 for 1 oz, ΔT ≤ 20 °C |
-| DRAIN | 2.0 A | 2.0 mm | Same current path as VIN |
-| GATE | < 5 mA | 0.25 mm | Signal current only |
+|------|------|------|------|
+| VIN | 2.0 A | 2.0 mm | IPC-2152 guidance for 1 oz copper |
+| DRAIN | 2.0 A | 2.0 mm | Main load-current path |
+| GATE | < 5 mA | 0.25 mm | Logic signal |
 | SIG | < 5 mA | 0.25 mm | Logic input |
-| LED path | ~3 mA | 0.25 mm | Indicator only |
-
----
+| LED path | ~3 mA | 0.25 mm | Indicator current only |
 
 ## 7. Manufacturing Output and DFM
 
@@ -464,6 +514,10 @@ Table 8 summarises the final verification status of the project.
 
 The ERC, shown in Figure 2, reports **0 errors** and **2 warnings**. Both warnings arise from the same cause: KiCad detects that two different labels are attached to the same net node and notifies the designer which name will take precedence in the netlist.
 
+**Figure 2**
+<img width="1237" height="609" alt="スクリーンショット 2026-05-30 122352" src="https://github.com/user-attachments/assets/ca5ce4cb-b1c2-4140-8508-9ffbbd8d4736" />
+
+
 The two warnings are:
 
 1. **`Both DRAIN and LOAD- are attached to the same items; DRAIN will be used in netlists`**  
@@ -496,38 +550,82 @@ The design was developed iteratively, with ERC and DRC run at each significant m
 
 ---
 
-### Problem 1: ERC Error — PWR_FLAG Missing on J3 GND Pin
+### Problem 1: ERC Error — Missing PWR_FLAG on the GND Net
 
-**Symptom:** During ERC, KiCad reported an error indicating that the GND net connected to Pin 2 of connector J3 was driven only by a passive connector pin with no power source visible in the local schematic context. The ERC message identified the GND net at J3 as having no `PWR_FLAG` attached, generating a power-pin error rather than a warning.
+#### Symptom
 
-**Root cause:** KiCad's ERC requires that every power net appearing in the schematic can be traced to at least one explicit power source or a `PWR_FLAG` symbol. `PWR_FLAG` is a zero-pin schematic symbol that informs the ERC engine that a given net is a valid supply or return rail, even if no formal power component drives it in the local context. In this design, a `PWR_FLAG` was correctly placed on the VIN net at J1 and on the GND net at J1, satisfying the ERC for those nets. However, J3 connects to GND at Pin 2 independently, forming a second GND entry point in a separate schematic region. Because no `PWR_FLAG` was initially placed at this GND node, the ERC engine could not confirm that this GND pin was intentionally connected to the power rail, and raised an error.
+During an early ERC run, KiCad reported an ERC error indicating that an input power pin was not driven by any output power pin.
 
-This situation is a common source of ERC errors when a design includes multiple connectors that each bring in a ground reference at different schematic locations.
+Although the GND symbols were electrically connected throughout the schematic, the ERC engine could not identify any recognised power source driving the GND net. As a result, the ERC generated an "Input Power pin not driven by any Output Power pins" error and the design could not achieve a clean ERC result.
 
-**Solution:** A `PWR_FLAG` symbol was added and connected to the GND net at the J3 connector region, directly adjacent to Pin 2 of J3. This is visible in the final schematic (Figure 1), where two `PWR_FLAG` symbols appear: one at J1 on the VIN net and one at J3 on the GND net. After adding the second `PWR_FLAG`, the ERC was re-run and the power-pin error was cleared. The final ERC result (Figure 2) shows **0 errors**.
+#### Root Cause
 
-**Key lesson:** In any KiCad design with multiple connectors, every separate schematic location where a power or ground net enters the schematic must carry its own `PWR_FLAG`. It is not sufficient to flag GND once at the main supply connector; every subsequent connector that independently connects to GND requires the same treatment. This is particularly relevant for logic input connectors like J3, which carry a GND pin that is electrically correct but invisible to the ERC without the explicit flag.
+KiCad's ERC system distinguishes between ordinary electrical connections and nets that are recognised as valid power sources.
+
+In the initial version of the schematic, a PWR_FLAG symbol had been placed only on the VIN net near connector J1. No PWR_FLAG was connected to the GND net.
+
+Although the GND symbols visually connected all ground nodes together, KiCad treats power symbols such as GND as power-input pins rather than power sources. Because the ERC engine could not identify any component explicitly driving the GND net, it treated the associated power-input pins as undriven and generated an ERC violation.
+
+The reported message was:
+
+Input Power pin not driven by any Output Power pins
+
+This behaviour is common in KiCad designs where power is supplied through external connectors rather than through components that KiCad recognises as power-output devices. In such cases, a PWR_FLAG symbol is required to inform the ERC engine that the net is intentionally powered by an external source.
+
+#### Solution
+
+A PWR_FLAG symbol was added to the GND net to indicate that the ground network is supplied by an external source and should be treated as a valid power net by the ERC engine.
+
+After adding the `PWR_FLAG`, the ERC engine recognised the GND network as a valid externally supplied return path and the power-pin error disappeared.
+
+The final schematic shown in Figure 1 contains:
+
+- one `PWR_FLAG` on the VIN net,
+- one `PWR_FLAG` on the GND net.
+
+After re-running ERC, the design achieved the final result shown in Figure 2:
+
+- 0 ERC errors
+- 2 acknowledged net-label warnings
+
+#### Key Lesson
+
+When a design receives power from external connectors rather than from explicit power-source components, both the positive supply rail and the return rail should be identified to the ERC engine.
+
+In KiCad, this is commonly achieved by placing `PWR_FLAG` symbols on the externally supplied power nets. A PWR_FLAG on the positive supply rail alone may not be sufficient. Any externally supplied power net that is interpreted as a power-input network by ERC, including the return (GND) rail, must be recognised by the ERC engine to avoid false power-connectivity errors.
 
 ---
 
 ### Problem 2: Missing GND Connections on F.Cu (DRC Errors)
 
-**Symptom:** The DRC (Figure 3) reported six "Missing connection between items" errors, all involving GND-net pads on F.Cu. The specific errors visible in Figure 3 include:
+**Symptom:** During PCB verification, the Design Rule Check (DRC) reported multiple **"Missing connection between items"** errors involving pads assigned to the GND net. As shown in Figure 3, the reported errors included missing copper connections between several GND-connected pads on the top copper layer (F.Cu).
+**Figure 3**
+<img width="809" height="721" alt="スクリーンショット 2026-05-31 015000" src="https://github.com/user-attachments/assets/08e6cf50-8eca-4b30-b5f6-1cd8ba83e615" />
 
-- Pad 2 [GND] of C1 on F.Cu ↔ PTH pad 2 [GND] of J1
-- Pad 2 [GND] of C2 on F.Cu ↔ Pad 2 [GND] of C1 on F.Cu
-- Pad 1 [GND] of TP2 on F.Cu ↔ Pad 2 [GND] of R2 on F.Cu
-- Pad 2 [GND] of R2 on F.Cu ↔ Pad 2 [GND] of Q1 on F.Cu
 
-Figure 4 shows the PCB layout at the state that produced these errors. Although red F.Cu copper is present, there is no continuous GND zone on the component side connecting the SMD GND pads to one another.
+Examples reported by DRC included:
 
-**Root cause:** Only a B.Cu GND copper zone had been created at this stage. All SMD components in this design — C1, C2, R1, R2, Q1, D2, and TP2 — have their GND pads on F.Cu. A copper zone placed exclusively on B.Cu provides no physical copper connection to pads on the opposite layer. Despite all pads sharing the GND net in the netlist, no copper connected them on the component side, causing KiCad's DRC to correctly flag them as missing connections.
+- C1 Pad 2 (GND) ↔ J1 Pad 2 (GND)
+- C2 Pad 2 (GND) ↔ C1 Pad 2 (GND)
+- TP2 Pad 1 (GND) ↔ R2 Pad 2 (GND)
+- R2 Pad 2 (GND) ↔ Q1 Source Pad (GND)
 
-A board manufactured in this state would have floating GND connections for C1, C2, R2, Q1 source, and TP2, making the circuit completely non-functional. The issue is not apparent from visual inspection of the routed view because KiCad's ratsnest only updates when zones are explicitly refilled; unrefilled zones do not display as airwires.
+Figure 4 shows the PCB layout at the stage when these errors were generated. Although the pads were correctly assigned to the GND net in the schematic and netlist, DRC detected that no valid copper connection existed between several of the associated pads.
+**Figure 4**
+<img width="1039" height="710" alt="スクリーンショット 2026-05-31 012622" src="https://github.com/user-attachments/assets/5d604998-b782-4ddc-a777-2b02d3f5e552" />
 
-**Solution:** A second GND copper zone was added on F.Cu, assigned to the GND net. After running "Fill All Zones," the F.Cu zone connected all SMD GND pads on the component side. All six missing-connection DRC errors were resolved. The final state is visible in Figure 5, where the dark blue background represents the board outline and B.Cu zone, while the F.Cu zone provides complete GND connectivity on the component side.
 
-**Key lesson:** In any 2-layer design with SMD components on F.Cu, a GND copper zone must be placed on F.Cu in addition to B.Cu. A single bottom-layer ground plane does not connect top-layer SMD GND pads unless explicit traces or vias are also routed to those pads. The DRC setting "Refill all zones before performing DRC" must be enabled — as seen checked in Figure 3 — to expose this class of error reliably.
+**Root Cause:** At this stage of the design, a GND copper zone had been created only on the B.Cu layer. Several GND-connected pads were located on F.Cu and were not connected by traces, vias, or an F.Cu copper zone. As a result, these pads belonged to the same logical net but were not physically connected in the PCB layout.
+
+KiCad correctly identified these missing physical connections and reported them as DRC errors. This issue illustrates the distinction between logical connectivity defined by the schematic and physical connectivity implemented in the PCB layout.
+
+**Solution:** To resolve the issue, an additional GND copper zone was created on the F.Cu layer and assigned to the GND net. After executing **Fill All Zones**, the F.Cu copper zone established the required physical connections between the affected GND pads.
+
+Following the zone refill, all reported missing-connection errors were cleared successfully. The corrected implementation is shown in Figure 5, where GND copper zones are present on both F.Cu and B.Cu.
+
+**Key Lesson:** DRC verification is essential whenever copper zones are used as part of the electrical connectivity strategy. Components that appear connected in the schematic may remain physically disconnected in the PCB layout if copper zones, traces, or vias are not implemented correctly.
+
+In this project, the issue was identified because DRC was run with **"Refill all zones before performing DRC"** enabled (Figure 3). This setting ensures that copper-zone connectivity is evaluated using the latest zone geometry and helps reveal connectivity problems that might otherwise be overlooked during layout inspection.
 
 ---
 
@@ -535,32 +633,47 @@ A board manufactured in this state would have floating GND connections for C1, C
 
 ### 11.1 Successful Design Decisions
 
-The placement strategy — positioning decoupling capacitors C1 and C2 immediately adjacent to the power input connector J1 — results in the shortest possible high-frequency current path between the supply entry and the decoupling capacitors. Any transient current spike caused by Q1 switching is absorbed locally by C1 and C2 rather than being drawn through the full supply cable inductance.
+The final component placement, shown in Figures 5 and 6, follows a logical current-flow arrangement from the power input connector (J1) through the switching stage (Q1) to the load connector (J2). This organisation simplifies routing, reduces unnecessary trace length in the main power path, and improves readability during both design review and troubleshooting.
 
-The inclusion of D1 (SS14 flyback diode) across the load connector is conservative but appropriate for a general-purpose switching board. Because J2 is exposed to the user and the board may be connected to relay coils, solenoids, or DC motors during service, protecting the DRAIN node from inductive transients at the circuit level eliminates dependence on the end user's awareness of flyback hazards.
+The placement of the decoupling capacitors (C1 and C2) adjacent to the power input connector J1 is another beneficial design decision. By locating the capacitors close to the supply entry point, transient current demands can be supported locally, reducing the influence of supply-cable impedance and helping to maintain a stable VIN rail during switching events.
 
-The LED indicator connected to the DRAIN node rather than the gate provides a true indication of the switched load state rather than merely reflecting the logic input. If Q1 were to fail short, the gate indicator would show the logic signal correctly while a drain indicator would correctly reveal the failed-on condition.
+As visible in Figures 5 and 6, the inclusion of the SS14 flyback diode (D1) across the load connector improves robustness when inductive loads are connected. Because the board is intended for use with a variety of external loads, including small DC motors and other inductive devices, integrating the flyback protection directly on the PCB reduces the risk of voltage transients appearing at the MOSFET drain.
+
+The LED indicator connected to the DRAIN node provides information about the voltage present at the switching node rather than simply indicating the logic input state. During testing and debugging, this arrangement can provide additional information about circuit operation and may help identify discrepancies between the commanded gate signal and the observed drain voltage.
+
+The inclusion of TP1 (DRAIN) and TP2 (GND), shown in Figure 6, improves measurement accessibility. The test points provide convenient locations for oscilloscope probes and multimeter measurements without requiring direct access to component leads or connector pins.
 
 ### 11.2 Problems and Their Design Impact
 
-Problem 1 (PWR_FLAG missing on J3 GND pin) is a schematic-level ERC error that is easy to overlook when a designer assumes that placing a single `PWR_FLAG` on the main supply connector is sufficient for the whole design. In a multi-connector schematic where each connector independently brings in a GND reference, each such entry point must be individually flagged. The error has no manufacturing consequence if left in an accepted state, but it indicates incomplete schematic annotation and will prevent a clean ERC report.
+Two significant issues were identified and resolved during the design process.
 
-Problem 2 (missing GND connections on F.Cu) is the most consequential issue encountered. Had it not been identified through DRC, the manufactured board would have had floating GND pads for C1, C2, Q1 source, and R2 — making the circuit completely non-functional. The failure mode is invisible from the schematic view and from the PCB routed view when zones have not been refilled. It is only reliably exposed by running DRC with the "Refill all zones before performing DRC" option enabled (as seen checked in Figure 3). This single setting is critical for any design that relies on copper zones for net connectivity.
+The first issue was an ERC error related to power-net definition. Initially, a PWR_FLAG symbol was placed only on the VIN net, while the GND net contained only passive connections and power-input symbols. As a result, ERC reported the message *"Input Power pin not driven by any Output Power pins"* because KiCad could not identify a recognised power source associated with the ground network.
+
+The issue was resolved by adding a PWR_FLAG symbol to the GND net, allowing ERC to recognise the ground network as a valid power-return connection. After this modification, ERC completed successfully with zero errors. Although the issue did not affect PCB manufacturability directly, it highlighted the importance of correctly defining power networks so that schematic verification can be completed successfully.
+
+The second issue involved missing GND connectivity on the F.Cu layer. As shown in Figure 3, DRC reported multiple missing-connection errors associated with pads assigned to the GND net. Investigation revealed that only a B.Cu GND zone had been created at that stage of development. Consequently, several GND-connected pads located on F.Cu were not physically connected to the intended ground network.
+
+The problem was resolved by adding a GND copper zone on F.Cu and refilling all copper zones. The corrected implementation is visible in Figure 5. Without DRC verification, the resulting PCB would have contained electrically isolated ground connections, preventing correct circuit operation.
+
+Together, these issues demonstrate the complementary roles of ERC and DRC. ERC identified a schematic-level power-network definition problem, whereas DRC detected a physical connectivity problem that was not immediately obvious from visual inspection of the PCB layout.
 
 ### 11.3 Compromises and Limitations
 
-The SOT-23 package was selected for Q1 for board compactness. At the 2 A design maximum and 50 mΩ R_DS(on), the theoretical junction temperature rise is approximately 60 °C (still-air assumption). For sustained operation near 2 A in a high-ambient environment, a larger package such as SOT-223 or DPAK would provide significantly better thermal margin. For the nominal 1 A load the SOT-23 is adequate.
+The AO3400A MOSFET was selected in a SOT-23 package to maintain a compact PCB footprint. As discussed in Section 6.5, estimated conduction losses remain relatively low for the intended operating range. However, thermal performance in small packages depends strongly on PCB copper area, ambient temperature, airflow, and operating conditions. For applications requiring sustained operation near the upper current limit, a larger package such as SOT-223 or DPAK would provide additional thermal margin.
 
-The use of standard 2.54 mm pin headers for J1 and J2 limits the practical current rating of the power connectors. For sustained loads near the 2 A design limit, screw terminal connectors would provide greater mechanical robustness and a higher current rating per contact.
+The design uses standard 2.54 mm pin-header connectors for J1 and J2. These connectors are inexpensive, widely available, and suitable for laboratory use and prototype evaluation. Nevertheless, screw-terminal connectors would provide improved mechanical robustness and may be preferable for applications involving frequent cable installation or higher continuous currents.
+
+Another limitation is that the project focused on schematic development, PCB layout, design verification, and manufacturing-file generation. While ERC, DRC, 3D inspection, and manufacturing-output checks were completed successfully, no fabricated prototype was available during the project. Consequently, electrical performance under real operating conditions remains to be verified experimentally.
 
 ### 11.4 Potential Future Improvements
 
-- **Screw terminal connectors for J1 and J2:** Improve mechanical robustness and current capacity for power connections.
-- **Additional test point on GATE net:** A dedicated test point on the GATE node (currently only probe-accessible via R1 pads) would allow direct oscilloscope measurement of the gate voltage waveform.
-- **Larger MOSFET package for sustained high-current use:** SOT-223 or DPAK for improved thermal margin at 2 A continuous.
-- **TVS clamp on VIN:** For harsh supply environments, a TVS device across J1 would provide protection against supply voltage transients.
+- **Screw-terminal connectors for J1 and J2:** Improve mechanical robustness and current-handling capability for power connections.
 
----
+- **Additional GATE test point:** A dedicated test point on the GATE net would simplify oscilloscope measurements of the MOSFET gate waveform.
+
+- **Larger MOSFET package:** Replacing the SOT-23 package with SOT-223 or DPAK would provide additional thermal margin for sustained high-current operation.
+
+- **Transient-voltage-suppression (TVS) protection:** A TVS diode across the VIN input could improve resilience against supply-line voltage spikes.
 
 ## 12. Conclusion
 
