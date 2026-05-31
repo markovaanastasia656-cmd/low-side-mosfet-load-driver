@@ -45,37 +45,6 @@ The PCB measures 39.37 mm × 27.94 mm and carries GND copper zones on both F.Cu 
 
 ---
 
-## List of Figures
-
-| Figure | Caption | Source Screenshot |
-|--------|---------|-------------------|
-| Figure 1 | Final schematic of the Low-Side MOSFET Load Driver | `スクリーンショット_2026-05-31_061710.png` |
-| Figure 2 | ERC result: 0 errors, 2 acknowledged net-label warnings | `スクリーンショット_2026-05-31_061749.png` |
-| Figure 3 | Intermediate DRC result showing GND missing-connection errors on F.Cu | `スクリーンショット_2026-05-31_015000.png` |
-| Figure 4 | Intermediate PCB layout state that produced the DRC errors in Figure 3 | `スクリーンショット_2026-05-31_015135.png` |
-| Figure 5 | Final PCB layout with board outline and complete routing | `スクリーンショット_2026-05-31_012622.png` |
-| Figure 6 | 3D Viewer — top view of the fully populated PCB | `スクリーンショット_2026-05-31_062012.png` |
-| Figure 7 | 3D Viewer — bottom view showing through-hole connector and test-point pins | `スクリーンショット_2026-05-31_062022.png` |
-
-> **Note on figure selection:** Only figures providing meaningful technical evidence are included. Screenshots of routine KiCad settings panels (Design Rules Constraints, Pre-defined Sizes) are referenced in tables (Tables 3 and 4) rather than as figures, since the tables capture the same information more concisely.
-
----
-
-## List of Tables
-
-| Table | Caption |
-|-------|---------|
-| Table 1 | Project specification summary |
-| Table 2 | Component list with exact footprints as used in KiCad |
-| Table 3 | Design rules applied in KiCad |
-| Table 4 | Pre-defined track widths and via sizes |
-| Table 5 | Power dissipation calculations |
-| Table 6 | Trace width design summary |
-| Table 7 | Bill of Materials |
-| Table 8 | Final verification results |
-
----
-
 ## 1. Introduction
 
 A low-side MOSFET load switch is one of the fundamental building blocks in embedded electronics. The circuit places an N-channel MOSFET between the load's negative terminal and the system ground rail, allowing a logic-level signal to enable or disable power to a load without interrupting the high-side supply rail. This topology is well suited to applications where the logic controller shares a common ground with the load, and where the supply voltage exceeds the logic voltage — a condition that would complicate a direct high-side switch using an N-channel device.
@@ -709,22 +678,6 @@ The design is manufacturable using standard two-layer PCB fabrication, and the d
 [5] SRH University of Applied Sciences, *PCB Design and Layout — Final Exam Brief*, Electronic Development Module, Prof. Dr. Oezdemir Cetin.
 
 [6] Component manufacturers, *Relevant component datasheets for 0603/0805 passive components (resistors, capacitors, LEDs)*, latest available revisions from distributor datasheets (Mouser, Digi-Key, LCSC).
-
----
-
-## Appendix A — Figure Reference Index
-
-The following table maps each figure in this report to the exact screenshot filename from the project archive. Screenshots of routine KiCad settings panels are documented in Tables 3 and 4 rather than as figures.
-
-| Figure | Screenshot Filename | Content |
-|--------|--------------------|---------| 
-| Figure 1 | `スクリーンショット_2026-05-31_061710.png` | Final schematic (KiCad Schematic Editor) |
-| Figure 2 | `スクリーンショット_2026-05-31_061749.png` | ERC result: 0 errors, 2 acknowledged warnings |
-| Figure 3 | `スクリーンショット_2026-05-31_015000.png` | Intermediate DRC: GND missing-connection errors on F.Cu |
-| Figure 4 | `スクリーンショット_2026-05-31_015135.png` | Intermediate PCB layout (B.Cu zone only, pre-F.Cu zone) |
-| Figure 5 | `スクリーンショット_2026-05-31_012622.png` | Final PCB layout with board outline and complete routing |
-| Figure 6 | `スクリーンショット_2026-05-31_062012.png` | 3D Viewer — top view of the populated PCB |
-| Figure 7 | `スクリーンショット_2026-05-31_062022.png` | 3D Viewer — bottom view, through-hole pins visible |
 
 ---
 
