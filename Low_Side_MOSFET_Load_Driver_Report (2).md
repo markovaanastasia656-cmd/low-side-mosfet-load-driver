@@ -190,7 +190,7 @@ VPEAK ≈ VIN + VF
 
 This remains well below the AO3400A drain-source voltage rating of 30 V.
 
-The SS14 also provides a 40 V reverse-voltage rating, giving more than a 3× margin over the 12 V supply voltage.
+The SS14 also provides a 40 V reverse-voltage rating, giving more than a 3× margin over the 12 V supply voltage[2].
 
 Although the SS14 is rated for 1 A average forward current, flyback operation is transient rather than continuous. The diode conducts only during MOSFET turn-off events while the inductive energy stored in the load is dissipated. For the intended low-frequency switching application, this rating is considered adequate.
 
@@ -198,18 +198,21 @@ Lower-voltage alternatives such as the SS12 would provide less voltage margin, w
 
 ### 4.4 MOSFET Switching Stage
 
-Q1 (AO3400A, `Package_TO_SOT_SMD:SOT-23`) is the primary switching device. The drain is connected to the DRAIN net and the source is connected to GND.
+Q1 (AO3400A, `Package_TO_SOT_SMD:SOT-23`) is the primary switching device[1]. The drain is connected to the DRAIN net and the source is connected to GND.
 
 The AO3400A was selected because:
 
 - Gate threshold voltage \(V_{GS(th)} = 0.45\text{–}1.35\ \text{V}\) (at 250 µA), allowing reliable operation from both 3.3 V and 5 V logic sources.
-- Low on-resistance. The datasheet specifies approximately 50 mΩ at \(V_{GS}=4.5\ \text{V}\); however, because this design is intended to operate from either 3.3 V or 5 V logic, the actual \(R_{DS(on)}\) at 3.3 V drive will be somewhat higher than the 4.5 V specification. The thermal analysis presented in Section 6.5 therefore uses the 50 mΩ value as a simplified engineering estimate rather than a guaranteed worst-case value.
+
+- Low on-resistance. The datasheet specifies approximately 50 mΩ at \(V_{GS}=4.5\ \text{V}\); however, because this design is intended to operate from either 3.3 V or 5 V logic, the actual \(R_{DS(on)}\) at 3.3 V drive will be somewhat higher than the 4.5 V specification. To account for this uncertainty, the thermal analysis presented in Section 6.5 uses a more conservative assumed value of 80 mΩ when estimating conduction losses and junction-temperature rise.
+
 - Continuous drain current rating of 5.7 A at 25 °C (package-limited), providing substantial margin above the nominal operating current range of 0.5–1.0 A. In practice, PCB trace current capability and thermal considerations limit the design current to 2.0 A, making the MOSFET itself non-limiting within the intended operating range.
+
 - Drain-source voltage rating \(V_{DS}=30\ \text{V}\), exceeding the minimum design requirement of 14.4 V (\(1.2 \times V_{IN}\) for a 12 V supply) and providing additional margin for switching transients.
 
-The schematic shows the SOURCE net label on Q1's source pin. As documented in Section 9.1, this creates an ERC warning because the GND power symbol and the SOURCE net label are intentionally placed on the same electrical node. The warning is acknowledged and discussed in detail in that section.
-
 - Alternative MOSFETs were considered. Devices such as the 2N7002 and BSS138 are widely available in SOT-23 packages but provide significantly higher on-resistance and lower current capability. Higher-performance devices such as the IRLML6244 offer lower on-resistance but were not required for the intended 2 A design current. The AO3400A therefore represents a practical compromise between cost, availability, package size, and current-handling capability.
+
+The schematic shows the SOURCE net label on Q1's source pin. As documented in Section 9.1, this creates an ERC warning because the GND power symbol and the SOURCE net label are intentionally placed on the same electrical node. The warning is acknowledged and discussed in detail in that section.
 
 ### 4.5 Gate Drive Network
 
@@ -258,6 +261,7 @@ P = V²/R
 ```
 
 which is negligible.
+A substantially smaller value (for example 10 kΩ) would increase static current consumption without providing significant practical benefit, while a substantially larger value (for example 1 MΩ) would increase susceptibility to leakage currents and noise. The selected value of 100 kΩ therefore represents a common engineering compromise between reliable gate discharge and low standby power consumption.
 
 ### 4.6 Logic Input Connector
 
@@ -403,19 +407,20 @@ Figure 7 shows the underside of the PCB. The through-hole connector pins and tes
 ---
 
 ## 6. EMC, Grounding, and Thermal Considerations
-
 ### 6.1 Decoupling Capacitor Placement
 
 C1 (100 nF, `C_0603_1608Metric`) and C2 (10 µF, `C_0805_2012Metric`) are placed immediately adjacent to the power-input connector J1, as shown in Figures 5 and 6. Positioning the decoupling network near the supply entry point minimises the impedance between the external power source and the local PCB power-distribution network.
 
-The capacitor values were selected to address different frequency ranges of supply disturbance:
+The capacitor values were selected to address different frequency ranges of load-switching disturbance:
 
 - **C1 (100 nF ceramic)** provides low impedance at high frequencies and suppresses fast switching transients.
 - **C2 (10 µF ceramic)** provides bulk energy storage and supports lower-frequency load-current variations.
 
-The combination of a 100 nF capacitor and a larger bulk capacitor is a widely used decoupling strategy because no single capacitor maintains low impedance across the entire frequency spectrum.
+The combination of a 100 nF capacitor and a larger bulk capacitor is a widely used decoupling strategy because no single capacitor maintains low impedance across the entire frequency spectrum. Together, the capacitors help maintain a stable VIN rail during load-switching events and reduce sensitivity to supply-cable inductance.
 
-Both capacitors are rated at 16 V, providing a voltage margin of approximately 33% above the maximum 12 V supply voltage. This satisfies the common engineering practice of selecting capacitor voltage ratings above the expected operating voltage to improve reliability and reduce the effects of DC-bias capacitance reduction.
+Both capacitors are rated at 16 V, providing a voltage margin of approximately 33% above the maximum 12 V supply voltage. This satisfies common engineering practice by providing additional reliability margin and reducing the effects of capacitance reduction caused by DC-bias voltage.
+
+Where ceramic capacitors are used, X7R or X5R dielectric types are generally preferred because they provide significantly better capacitance stability over voltage and temperature than lower-cost alternatives such as Y5V or Z5U. These dielectric types are therefore appropriate for both the high-frequency decoupling and bulk-storage functions implemented in this design.
 
 ### 6.2 Return Current Path and Loop Area Minimisation
 
@@ -442,7 +447,7 @@ The final PCB uses GND copper zones on both F.Cu and B.Cu layers, as shown in Fi
 
 The dual-layer implementation provides low-impedance return-current paths, improves connectivity between GND nodes, and increases available copper area for thermal spreading. The detailed design iteration that led to this implementation is discussed in Section 10 (Problem 2).
 
-By maintaining continuous GND copper on both layers, the design reduces routing complexity and improves overall electrical robustness.
+By maintaining continuous GND copper on both layers, the design reduces routing complexity and improves overall electrical robustness[7].
 
 ### 6.4 Gate Drive and EMI Considerations
 
@@ -503,7 +508,7 @@ P = I² × RDS(on)
 
 The AO3400A datasheet specifies an on-resistance of approximately 50 mΩ at a gate-drive voltage of \(V_{GS}=4.5\ \text{V}\). Because this design is intended to operate from either 3.3 V or 5 V logic sources, the actual on-resistance depends on the applied gate voltage. At 3.3 V gate drive, the effective \(R_{DS(on)}\) is expected to be somewhat higher than the 4.5 V specification.
 
-To provide a conservative engineering estimate, a value of 80 mΩ was assumed for thermal calculations. This value is representative of operation between the datasheet's 2.5 V and 4.5 V drive conditions and therefore better reflects expected performance when driven from 3.3 V logic.
+To provide a conservative engineering estimate, a value of 80 mΩ was assumed for thermal calculations. This value lies between the datasheet on-resistance specified at \(V_{GS}=2.5\ \text{V}\) and \(V_{GS}=4.5\ \text{V}\), and therefore provides a reasonable approximation for operation from a 3.3 V logic source.
 
 **Table 5: Estimated MOSFET Conduction Loss**
 
@@ -552,6 +557,9 @@ Consequently, thermal performance is not expected to be the limiting factor for 
 | GATE | < 5 mA | 0.25 mm | Logic signal |
 | SIG | < 5 mA | 0.25 mm | Logic input |
 | LED path | ~3 mA | 0.25 mm | Indicator current only |
+
+---
+ 
 ## 7. Manufacturing Output and DFM
 
 ### 7.1 Board Outline
@@ -616,7 +624,7 @@ Table 7 provides the complete Bill of Materials using the exact footprints as pl
 
 | Ref | Description | Value | Footprint | MPN (Example) | Qty | Key Rating |
 |-----|-------------|-------|-----------|---------------|-----|------------|
-| Q1 | N-Ch MOSFET | AO3400A | `Package_TO_SOT_SMD:SOT-23` | AO3400A | 1 | V_DS = 30 V; I_D = 5.7 A; R_DS(on) ≈ 50 mΩ at V_GS = 4.5 V |
+| Q1 | N-Ch MOSFET | AO3400A | `Package_TO_SOT_SMD:SOT-23` | AO3400A | 1 | V_DS = 30 V; I_D = 5.7 A; R_DS(on) ≈ 50 mΩ at V_GS = 4.5 V (higher at 3.3 V drive) |
 | R1 | Gate series resistor | 47 Ω | `R_0603_1608Metric` | Any 47 Ω 1% 0603 | 1 | Limits gate charge current; 1/10 W rated |
 | R2 | Gate pull-down | 100 kΩ | `R_0603_1608Metric` | Any 100 kΩ 1% 0603 | 1 | Holds gate low when J3 is disconnected |
 | R3 | LED current limiter | 3.3 kΩ | `R_0603_1608Metric` | Any 3.3 kΩ 1% 0603 | 1 | I_LED ≈ 3 mA; P_R3 = 30 mW < 100 mW rating |
@@ -624,8 +632,8 @@ Table 7 provides the complete Bill of Materials using the exact footprints as pl
 | C2 | Bulk decoupling | 10 µF | `C_0805_2012Metric` | Any 10 µF 16 V X5R 0805 | 1 | 16 V rating > 12 V; bulk energy storage |
 | D1 | Flyback diode | SS14 | `Diode_SMD:D_SMA` | SS14 (Vishay or equiv.) | 1 | Schottky; 1 A fwd; 40 V reverse |
 | D2 | LED indicator | LED | `LED_SMD:LED_0805_2012Metric` | Any standard LED 0805 | 1 | Indicator only; ≈ 3 mA operating |
-| J1 | Power input | 1×02 | `PinHeader_1x02_P2.54mm_Vertical` | Generic 2.54 mm header | 1 | 2 A current rating; standard pitch |
-| J2 | Load output | 1×02 | `PinHeader_1x02_P2.54mm_Vertical` | Generic 2.54 mm header | 1 | 2 A current rating; standard pitch |
+| J1 | Power input | 1×02 | `PinHeader_1x02_P2.54mm_Vertical` | Generic 2.54 mm header | 1 | Suitable for prototype power connections |
+| J2 | Load output | 1×02 | `PinHeader_1x02_P2.54mm_Vertical` | Generic 2.54 mm header | 1 | Suitable for prototype load connections |
 | J3 | Logic input | 1×02 | `PinHeader_1x02_P2.54mm_Vertical` | Generic 2.54 mm header | 1 | Logic signal only; < 5 mA |
 | TP1 | Test point — Drain | — | `TestPoint_THTPad_D1.0mm` | Generic TH test point | 1 | 1.0 mm pad for oscilloscope probe |
 | TP2 | Test point — GND | — | `TestPoint_THTPad_D1.0mm` | Generic TH test point | 1 | GND reference for probe |
@@ -665,7 +673,7 @@ The ERC result is shown in Figure 2. The ERC window reports **0 errors** and **2
 > <img width="1237" height="609" alt="スクリーンショット 2026-05-30 122352" src="https://github.com/user-attachments/assets/ca5ce4cb-b1c2-4140-8508-9ffbbd8d4736" />
 
 
-As visible in Figure 2, the ERC summary shows a zero-error count together with two warning entries. These warnings arise because KiCad detects that different labels have been attached to the same electrical node and therefore informs the designer which label will be used as the canonical net name in the generated netlist.
+As visible in Figure 2, the ERC summary shows a zero-error count together with two warning entries. These warnings arise because KiCad detects that different labels have been attached to the same electrical node and therefore informs the designer which label will be used as the canonical net name in the generated netlist.[4]
 
 The two warnings are:
 
@@ -685,7 +693,7 @@ These warnings are acknowledged and accepted because they do not indicate incorr
 
 ### 10.1 Design Iteration and Debugging Process
 
-The design was developed iteratively, with ERC and DRC run at each significant milestone. The key stages were:
+The design was developed iteratively, with ERC and DRC run at each significant milestone[5]. The key stages were:
 
 1. **Schematic capture and ERC** — The schematic was drawn and the ERC was run to verify net connectivity. An ERC error was raised because J3's GND pin lacked a connected `PWR_FLAG` symbol (Problem 1 below). This was resolved before layout began.
 
@@ -705,9 +713,21 @@ The design was developed iteratively, with ERC and DRC run at each significant m
 
 #### Symptom
 
-During an early ERC run, KiCad reported an ERC error indicating that an input power pin was not driven by any output power pin.
+During an early ERC run, KiCad reported an error indicating that an input-power pin was not driven by any recognised power-source output.
 
-Although the GND symbols were electrically connected throughout the schematic, the ERC engine could not identify any recognised power source driving the GND net. As a result, the ERC generated an "Input Power pin not driven by any Output Power pins" error and the design could not achieve a clean ERC result.
+Although the GND symbols were electrically connected throughout the schematic, the ERC engine could not identify a valid power source associated with the GND network. As a result, ERC reported the message:
+
+```text
+Input Power pin not driven by any Output Power pins
+```
+
+and the design could not achieve a clean ERC result.
+
+Figure 8 shows the ERC window at the time the error was detected. The ERC report contains one error and identifies a power-input pin that KiCad considered undriven.
+
+> **Figure 8**
+> <img width="822" height="604" alt="スクリーンショット 2026-05-30 052905" src="https://github.com/user-attachments/assets/9521eed7-369a-4460-826c-900eac46c1f1" />
+
 
 #### Root Cause
 
@@ -727,17 +747,14 @@ This behaviour is common in KiCad designs where power is supplied through extern
 
 A PWR_FLAG symbol was added to the GND net to indicate that the ground network is supplied by an external source and should be treated as a valid power net by the ERC engine.
 
-After adding the `PWR_FLAG`, the ERC engine recognised the GND network as a valid externally supplied return path and the power-pin error disappeared.
+After adding the PWR_FLAG and re-running ERC, the "Input Power pin not driven by any Output Power pins" error shown in Figure 8 disappeared and the schematic passed ERC without power-connectivity violations.
 
 The final schematic shown in Figure 1 contains:
 
 - one `PWR_FLAG` on the VIN net,
 - one `PWR_FLAG` on the GND net.
 
-After re-running ERC, the design achieved the final result shown in Figure 2:
-
-- 0 ERC errors
-- 2 acknowledged net-label warnings
+The final ERC result is shown in Figure 2. At that stage of development, the original power-pin error had been resolved completely. The two warnings visible in Figure 2 were introduced later by the intentional addition of duplicate net labels (`DRAIN` / `LOAD−` and `SOURCE` / `GND`) and are discussed separately in Section 9.1.
 
 #### Key Lesson
 
@@ -749,10 +766,14 @@ In KiCad, this is commonly achieved by placing `PWR_FLAG` symbols on the externa
 
 ### Problem 2: Missing GND Connections on F.Cu (DRC Errors)
 
-**Symptom:** During PCB verification, the Design Rule Check (DRC) reported multiple **"Missing connection between items"** errors involving pads assigned to the GND net. As shown in Figure 3, the reported errors included missing copper connections between several GND-connected pads on the top copper layer (F.Cu).
+#### Symptom
+
+During PCB verification, the Design Rule Check (DRC) reported multiple **"Missing connection between items"** errors involving pads assigned to the GND net.
+
+As shown in Figure 3, the DRC window reported six connectivity violations associated with GND-net pads. These errors indicated that pads belonging to the same net were not physically connected by copper despite being logically connected in the schematic.
+
 > **Figure 3**
 > <img width="809" height="721" alt="スクリーンショット 2026-05-31 015000" src="https://github.com/user-attachments/assets/08e6cf50-8eca-4b30-b5f6-1cd8ba83e615" />
-
 
 Examples reported by DRC included:
 
@@ -761,22 +782,45 @@ Examples reported by DRC included:
 - TP2 Pad 1 (GND) ↔ R2 Pad 2 (GND)
 - R2 Pad 2 (GND) ↔ Q1 Source Pad (GND)
 
-Figure 4 shows the PCB layout at the stage when these errors were generated. Although the pads were correctly assigned to the GND net in the schematic and netlist, DRC detected that no valid copper connection existed between several of the associated pads.
+Figure 4 shows the PCB layout at the stage when these errors occurred.
+
 > **Figure 4**
 > <img width="1039" height="710" alt="スクリーンショット 2026-05-31 012622" src="https://github.com/user-attachments/assets/5d604998-b782-4ddc-a777-2b02d3f5e552" />
 
+Observe that Figure 4 contains routed copper traces but does not yet contain a continuous GND copper zone on the F.Cu layer. Although the affected pads were correctly assigned to the GND net in the schematic and netlist, no valid physical copper connection existed between several of the associated top-layer pads.
 
-**Root Cause:** At this stage of the design, a GND copper zone had been created only on the B.Cu layer. Several GND-connected pads were located on F.Cu and were not connected by traces, vias, or an F.Cu copper zone. As a result, these pads belonged to the same logical net but were not physically connected in the PCB layout.
+#### Root Cause
 
-KiCad correctly identified these missing physical connections and reported them as DRC errors. This issue illustrates the distinction between logical connectivity defined by the schematic and physical connectivity implemented in the PCB layout.
+At this stage of development, a GND copper zone had been implemented only on the B.Cu layer. However, several GND-connected SMD pads—including those belonging to C1, C2, R2, Q1, and TP2—were located on F.Cu.
 
-**Solution:** To resolve the issue, an additional GND copper zone was created on the F.Cu layer and assigned to the GND net. After executing **Fill All Zones**, the F.Cu copper zone established the required physical connections between the affected GND pads.
+Because no dedicated GND traces, stitching vias, or F.Cu GND copper zone connected these pads, the pads belonged to the same logical net but remained physically isolated in the PCB layout. KiCad therefore correctly reported the missing physical connections during DRC.
 
-Following the zone refill, all reported missing-connection errors were cleared successfully. The corrected implementation is shown in Figure 5, where GND copper zones are present on both F.Cu and B.Cu.
+This issue highlights an important distinction between schematic connectivity and PCB connectivity. A net can appear fully connected in the schematic while still remaining electrically open in the physical PCB implementation if copper connections are not provided.
 
-**Key Lesson:** DRC verification is essential whenever copper zones are used as part of the electrical connectivity strategy. Components that appear connected in the schematic may remain physically disconnected in the PCB layout if copper zones, traces, or vias are not implemented correctly.
+Had the board been manufactured in this state, several GND-connected components would have been electrically disconnected from the ground network, preventing correct circuit operation.
 
-In this project, the issue was identified because DRC was run with **"Refill all zones before performing DRC"** enabled (Figure 3). This setting ensures that copper-zone connectivity is evaluated using the latest zone geometry and helps reveal connectivity problems that might otherwise be overlooked during layout inspection.
+#### Solution
+
+To resolve the issue, an additional GND copper zone was created on the F.Cu layer and assigned to the GND net. After executing **Fill All Zones**, the new copper zone established physical connections between all affected GND pads on the component side of the board.
+
+The corrected implementation is shown in Figure 5.
+
+> **Figure 5**
+> *(Final PCB layout with GND zones on both F.Cu and B.Cu)*
+
+Compared with Figure 4, Figure 5 includes a continuous F.Cu GND copper fill surrounding and connecting the SMD GND pads. This additional copper region provides complete electrical connectivity for the top-layer GND network.
+
+Following the zone refill, all reported missing-connection errors were eliminated and the PCB passed DRC without connectivity violations.
+
+#### Key Lesson
+
+Copper zones form part of the electrical connectivity of the PCB and must therefore be verified using DRC rather than visual inspection alone.
+
+When SMD components are placed on F.Cu, a B.Cu ground plane alone does not automatically provide electrical connectivity to top-layer GND pads. Physical connections must be created using traces, vias, or an F.Cu copper zone.
+
+In this project, the issue was identified because DRC was executed with **"Refill all zones before performing DRC"** enabled, as shown in Figure 3. This setting ensures that zone connectivity is evaluated using the latest copper geometry and helps reveal connectivity errors that might otherwise remain hidden during layout review.
+
+The experience reinforced the importance of treating copper zones as active electrical conductors rather than purely mechanical layout features.
 
 ---
 
@@ -810,7 +854,9 @@ Together, these issues demonstrate the complementary roles of ERC and DRC. ERC i
 
 ### 11.3 Compromises and Limitations
 
-The AO3400A MOSFET was selected in a SOT-23 package to maintain a compact PCB footprint and minimise board area. As discussed in Section 6.5, conduction losses are expected to remain relatively low within the intended operating range. However, the actual MOSFET on-resistance depends on gate-drive voltage. The commonly cited value of approximately 50 mΩ corresponds to \(V_{GS}=4.5\ \text{V}\); operation from a 3.3 V logic source will result in a somewhat higher \(R_{DS(on)}\), increasing conduction loss relative to the simplified estimate. Furthermore, thermal performance in small packages depends strongly on PCB copper area, ambient temperature, airflow, and operating conditions. For applications requiring sustained operation near the 2 A design-current limit, a larger package such as SOT-223 or DPAK would provide additional thermal margin.
+The AO3400A MOSFET was selected in a SOT-23 package to maintain a compact PCB footprint and minimise board area while remaining compatible with the intended current range. For the nominal operating current of 0.5–1.0 A and the 2.0 A design-current target, the estimated conduction losses remain relatively low, making a larger power package unnecessary for the intended application. As discussed in Section 6.5, the actual MOSFET on-resistance depends on gate-drive voltage. The commonly cited value of approximately 50 mΩ corresponds to \(V_{GS}=4.5\ \text{V}\); operation from a 3.3 V logic source will result in a somewhat higher \(R_{DS(on)}\), increasing conduction loss relative to the simplified estimate.
+
+However, thermal performance in small packages depends strongly on PCB copper area, ambient temperature, airflow, and operating conditions. For applications requiring sustained operation near the 2 A design-current limit, or operation at elevated ambient temperatures, a larger package such as SOT-223 or DPAK would provide additional thermal margin and improved heat dissipation capability.
 
 The design uses standard 2.54 mm pin-header connectors for J1 and J2. These connectors are inexpensive, widely available, and suitable for laboratory use and prototype evaluation. Nevertheless, screw-terminal connectors would provide improved mechanical robustness and may be preferable for applications involving frequent cable installation or higher continuous currents.
 
@@ -825,6 +871,7 @@ Another limitation is that the project focused on schematic development, PCB lay
 - **Larger MOSFET package:** Replacing the SOT-23 package with SOT-223 or DPAK would provide additional thermal margin for sustained high-current operation.
 
 - **Transient-voltage-suppression (TVS) protection:** A TVS diode across the VIN input could improve resilience against supply-line voltage spikes.
+- **Dedicated 5 V gate-drive stage:** Although the AO3400A operates from both 3.3 V and 5 V logic sources, a dedicated gate driver or 5 V gate-drive stage would further reduce \(R_{DS(on)}\), minimise conduction losses, and improve switching performance at higher load currents.
 
 ## 12. Conclusion
 
@@ -835,31 +882,61 @@ All design objectives were met:
 - Low-side switch topology correctly implemented for 12 V loads up to 1 A nominal (2 A design margin).
 - Power traces sized to 2.0 mm for the 2 A design current in accordance with IPC-2152 guidance.
 - Gate series resistor (R1 = 47 Ω) and gate pull-down resistor (R2 = 100 kΩ) correctly implemented.
-- SS14 flyback diode protects against inductive load transients.
+- SS14 flyback diode protects against inductive-load transients.
 - Dual GND copper zones on F.Cu and B.Cu provide complete GND connectivity on both layers.
-- Two test points provided: TP1 on the DRAIN net, TP2 on GND.
-- Final submission: **0 ERC errors**, **0 DRC errors**, **0 DRC warnings**.
-- Complete manufacturing package: Gerber files, Excellon drill files, BOM, schematic, and 3D Viewer screenshots.
+- Two test points provided: TP1 on the DRAIN net and TP2 on GND.
+- Final verification results: **0 ERC errors**, **0 DRC errors**, and **0 DRC warnings**.
+- Complete manufacturing package generated, including Gerber files, Excellon drill files, BOM, schematic documentation, and 3D Viewer verification images.
 
-The two most important technical lessons from this project address different stages of the design process. At the schematic level: every connector that independently brings a power or ground net into the schematic requires its own `PWR_FLAG` symbol — a single flag at the main supply connector does not satisfy the ERC for subsequent connector GND pins. At the PCB layout level: a GND copper zone must be present on every copper layer that contains SMD GND pads. A single bottom-layer ground plane leaves all top-side SMD GND pads electrically unconnected in copper — a failure mode invisible to visual inspection but reliably detected by running DRC with zone refill enabled.
+The two most important technical lessons from this project address different stages of the design process. At the schematic level, KiCad's ERC distinguishes between power-source and power-input symbols. When power is supplied through external connectors, the corresponding supply nets must be identified to the ERC engine using `PWR_FLAG` symbols; otherwise, ERC may report power-input pins as undriven even when the schematic is electrically correct. At the PCB-layout level, a GND copper zone must be present on every copper layer that contains SMD GND pads unless alternative copper connections such as traces or vias are provided. In this project, relying only on a B.Cu GND zone left several F.Cu GND pads physically disconnected. The issue was not obvious from visual inspection but was reliably detected by DRC with automatic zone refill enabled.
 
-The design is manufacturable using standard two-layer PCB fabrication, and the documentation is sufficient for another engineer to review, build, and test the board without additional clarification.
+The completed design satisfies the functional, electrical, and manufacturability requirements defined for the project. The board can be fabricated using standard two-layer PCB manufacturing processes and the accompanying documentation provides sufficient information for independent review, assembly, and testing. Although no physical prototype was available during the project, the successful completion of ERC, DRC, 3D-model inspection, Gerber verification, and manufacturing-file generation provides confidence that the design is ready for fabrication and subsequent experimental validation.
 
 ---
 
+
 ## 13. References
 
-[1] Alpha & Omega Semiconductor, *AO3400A — N-Channel Enhancement Mode Field Effect Transistor Datasheet*, latest available revision. [Online]. Available: https://www.aosmd.com/
+[1] Alpha & Omega Semiconductor,
+AO3400A N-Channel Enhancement Mode Field Effect Transistor Datasheet.
+Available:
+https://www.aosmd.com/products/mosfets/low-voltage-mosfets-12v-30v/ao3400a
 
-[2] Vishay Semiconductors, *SS14 — Surface Mount Schottky Barrier Rectifier Datasheet*, latest available revision. [Online]. Available: https://www.vishay.com/
+[2] Vishay Semiconductors,
+SS14 Surface-Mount Schottky Barrier Rectifier Datasheet.
+Available:
+https://www.vishay.com/search/?searchChoice=part&query=SS14
 
-[3] IPC, *IPC-2152 — Standard for Determining Current Carrying Capacity in Printed Board Design*, IPC International.
+[3] KiCad Documentation Team,
+KiCad 8 Documentation.
+Available:
+https://docs.kicad.org/
 
-[4] KiCad Documentation Team, *KiCad EDA Documentation*, KiCad version 8.x. [Online]. Available: https://docs.kicad.org/
+[4] KiCad Documentation Team,
+Electrical Rules Checker (ERC).
+Available:
+https://docs.kicad.org/
 
-[5] SRH University of Applied Sciences, *PCB Design and Layout — Final Exam Brief*, Electronic Development Module, Prof. Dr. Oezdemir Cetin.
+[5] KiCad Documentation Team,
+Design Rules Checker (DRC).
+Available:
+https://docs.kicad.org/
 
-[6] Component manufacturers, *Relevant component datasheets for 0603/0805 passive components (resistors, capacitors, LEDs)*, latest available revisions from distributor datasheets (Mouser, Digi-Key, LCSC).
+[6] Microchip Technology,
+AN947: Power MOSFET Basics and Gate Drive Considerations.
+
+[7] IPC,
+IPC-2221: Generic Standard on Printed Board Design.
+
+[8] Würth Elektronik,
+PCB Layout Recommendations for Power Electronics.
+Available:
+https://www.we-online.com/
+
+[9] SRH University of Applied Sciences,
+PCB Design and Layout – Final Exam Brief,
+Electronic Development Module,
+Prof. Dr. Oezdemir Cetin.
 
 ---
 
