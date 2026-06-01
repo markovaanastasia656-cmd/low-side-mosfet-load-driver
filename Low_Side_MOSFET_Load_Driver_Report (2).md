@@ -901,6 +901,7 @@ The completed design satisfies the functional, electrical, and manufacturability
 AO3400A N-Channel Enhancement Mode Field Effect Transistor Datasheet.
 Available:
 https://www.aosmd.com/products/mosfets/low-voltage-mosfets-12v-30v/ao3400a
+https://www.aosmd.com/res/datasheets/AO3400A.pdf
 
 [2] Vishay Semiconductors,
 SS14 Surface-Mount Schottky Barrier Rectifier Datasheet.
