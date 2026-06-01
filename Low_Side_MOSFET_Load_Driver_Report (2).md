@@ -162,32 +162,102 @@ The visible net labels in the schematic are: `VIN`, `GND`, `SIG`, `GATE`, `DRAIN
 
 ### 4.2 Power Input Block
 
-Connector J1 (`PinHeader_1x02_P2.54mm_Vertical`) provides the 12 V supply. Pin 1 is connected to the VIN net; Pin 2 is connected to GND. Two decoupling capacitors — C1 (100 nF, `C_0603_1608Metric`) and C2 (10 µF, `C_0805_2012Metric`) — are connected in parallel between VIN and GND. C1 provides high-frequency decoupling for fast transient currents; C2 provides bulk energy storage for load-switching transients.
+Connector J1 (`PinHeader_1x02_P2.54mm_Vertical`) provides the 12 V supply. Pin 1 is connected to the VIN net; Pin 2 is connected to GND.
+
+Two decoupling capacitors — C1 (100 nF, `C_0603_1608Metric`) and C2 (10 µF, `C_0805_2012Metric`) — are connected in parallel between VIN and GND.
+
+C1 provides high-frequency decoupling for fast transient currents generated during switching events. A value of 100 nF is widely used for local bypassing because it maintains a low impedance at high frequencies while remaining small enough to minimise parasitic inductance. Smaller values such as 10 nF provide less charge storage, while larger values such as 1 µF generally offer little additional benefit for high-frequency decoupling.
+
+C2 provides bulk energy storage for lower-frequency load transients. A value of 10 µF was selected to provide a local energy reservoir capable of supplying transient load current without excessive VIN voltage droop. Smaller values would reduce transient energy storage, while significantly larger values would increase component size with limited benefit for the intended 0.5–1.0 A operating range.
+
+Together, C1 and C2 provide broadband supply decoupling, with C1 addressing high-frequency switching noise and C2 supporting lower-frequency current demand.
 
 ### 4.3 Load Connector and Flyback Diode
 
 Connector J2 (`PinHeader_1x02_P2.54mm_Vertical`) is the load output terminal. Pin 1 is connected to the VIN net (labelled LOAD+); Pin 2 is connected to the DRAIN net (labelled LOAD−). The load is therefore connected in series with the drain of Q1 between VIN and GND, implementing the low-side switching topology.
 
-Diode D1 (SS14, `Diode_SMD:D_SMA`) is connected across the load connector as a flyback clamp. The cathode of D1 connects to LOAD+ (VIN); the anode connects to LOAD− (DRAIN). When Q1 turns off, inductive energy stored in any reactive load is dissipated through D1 rather than appearing as a voltage spike on the DRAIN node. The SS14 was selected for its Schottky construction (fast recovery, low forward voltage ≈ 0.4 V), a 1 A forward current rating, and a 40 V reverse voltage — providing margin above the 12 V worst-case supply.
+Diode D1 (SS14, `Diode_SMD:D_SMA`) is connected across the load connector as a flyback clamp. The cathode of D1 connects to LOAD+ (VIN); the anode connects to LOAD− (DRAIN).
+
+When Q1 turns off, inductive energy stored in any reactive load forces current to continue flowing. Without D1, the drain voltage could rise well above the supply voltage and potentially exceed the MOSFET drain-source rating. The flyback diode provides an alternate current path, allowing the inductive energy to recirculate safely until it dissipates.
+
+The SS14 was selected because its Schottky construction provides fast response and a low forward voltage drop (typically approximately 0.4 V). During turn-off of an inductive load, the drain voltage is therefore limited to approximately:
+
+```text
+VPEAK ≈ VIN + VF
+      ≈ 12 V + 0.4 V
+      ≈ 12.4 V
+```
+
+This remains well below the AO3400A drain-source voltage rating of 30 V.
+
+The SS14 also provides a 40 V reverse-voltage rating, giving more than a 3× margin over the 12 V supply voltage.
+
+Although the SS14 is rated for 1 A average forward current, flyback operation is transient rather than continuous. The diode conducts only during MOSFET turn-off events while the inductive energy stored in the load is dissipated. For the intended low-frequency switching application, this rating is considered adequate.
+
+Lower-voltage alternatives such as the SS12 would provide less voltage margin, while signal diodes such as the 1N4148 are not intended to handle inductive-load recirculation currents and would therefore be unsuitable for this application.
 
 ### 4.4 MOSFET Switching Stage
 
-Q1 (AO3400A, `Package_TO_SOT_SMD:SOT-23`) is the primary switching device. The drain is connected to the DRAIN net; the source is connected to GND. The AO3400A was selected because:
+Q1 (AO3400A, `Package_TO_SOT_SMD:SOT-23`) is the primary switching device. The drain is connected to the DRAIN net and the source is connected to GND.
 
-- Gate threshold voltage V_GS(th) = 0.45–1.35 V (at 250 µA), confirming full enhancement at 3.3 V logic drive.
-- On-resistance R_DS(on) ≈ 50 mΩ at V_GS = 4.5 V, giving a worst-case conduction loss of 0.20 W at 2 A design current — well within the SOT-23 thermal capability at the expected operating duty.
-- Continuous drain current rating of 5.7 A at 25 °C (package limited), providing a 5× margin over the 1.0 A nominal load.
-- V_DS rating of 30 V, satisfying the minimum requirement of 14.4 V (1.2× V_IN = 1.2 × 12 V) with significant margin.
+The AO3400A was selected because:
 
-The schematic shows the SOURCE net label on Q1's source pin. As documented in Section 9.1, this creates an ERC warning because the GND power symbol and the SOURCE label are simultaneously on the same node. This is discussed in full in that section.
+- Gate threshold voltage \(V_{GS(th)} = 0.45\text{–}1.35\ \text{V}\) (at 250 µA), allowing reliable operation from both 3.3 V and 5 V logic sources.
+- Low on-resistance. The datasheet specifies approximately 50 mΩ at \(V_{GS}=4.5\ \text{V}\); however, because this design is intended to operate from either 3.3 V or 5 V logic, the actual \(R_{DS(on)}\) at 3.3 V drive will be somewhat higher than the 4.5 V specification. The thermal analysis presented in Section 6.5 therefore uses the 50 mΩ value as a simplified engineering estimate rather than a guaranteed worst-case value.
+- Continuous drain current rating of 5.7 A at 25 °C (package-limited), providing substantial margin above the nominal operating current range of 0.5–1.0 A. In practice, PCB trace current capability and thermal considerations limit the design current to 2.0 A, making the MOSFET itself non-limiting within the intended operating range.
+- Drain-source voltage rating \(V_{DS}=30\ \text{V}\), exceeding the minimum design requirement of 14.4 V (\(1.2 \times V_{IN}\) for a 12 V supply) and providing additional margin for switching transients.
+
+The schematic shows the SOURCE net label on Q1's source pin. As documented in Section 9.1, this creates an ERC warning because the GND power symbol and the SOURCE net label are intentionally placed on the same electrical node. The warning is acknowledged and discussed in detail in that section.
+
+- Alternative MOSFETs were considered. Devices such as the 2N7002 and BSS138 are widely available in SOT-23 packages but provide significantly higher on-resistance and lower current capability. Higher-performance devices such as the IRLML6244 offer lower on-resistance but were not required for the intended 2 A design current. The AO3400A therefore represents a practical compromise between cost, availability, package size, and current-handling capability.
 
 ### 4.5 Gate Drive Network
 
-The gate drive network consists of two resistors:
+The gate drive network consists of two resistors.
 
-**R1 (47 Ω, `R_0603_1608Metric`)** is connected in series between the SIG net (from J3 Pin 1) and the GATE net (Q1 gate). The 47 Ω value limits the gate charge current and the rate of V_GS rise, reducing dV/dt at the drain and limiting the high-frequency spectral content of the switching edge. For a DC on/off application, this value is appropriate and conservative.
+**R1 (47 Ω, `R_0603_1608Metric`)** is connected in series between the SIG net (from J3 Pin 1) and the GATE net (Q1 gate).
 
-**R2 (100 kΩ, `R_0603_1608Metric`)** is connected from the GATE net to GND. This pull-down resistor ensures Q1 remains firmly off if the logic input at J3 is disconnected, floated, or if the driving controller is in a high-impedance reset state. Without R2, a floating gate could allow partial enhancement of Q1 due to stray coupling, potentially causing uncontrolled load activation.
+The AO3400A datasheet specifies an input capacitance of approximately 560 pF. The resulting RC time constant is:
+
+```text
+τ = RC
+  = 47 Ω × 560 pF
+  ≈ 26 ns
+```
+
+The corresponding 10–90% rise time is approximately:
+
+```text
+tr ≈ 2.2τ
+   ≈ 57 ns
+```
+
+This switching speed is significantly faster than required for a simple DC load switch while still limiting peak gate charging current and reducing high-frequency switching noise. Smaller resistor values would provide little practical benefit, while substantially larger values would unnecessarily slow the switching transition.
+
+For the intended application, the board operates as a low-frequency DC load switch rather than a high-speed switching converter. Consequently, precise optimisation of switching speed is unnecessary, and a conservative gate resistor value was preferred to reduce switching noise and ringing.
+
+**R2 (100 kΩ, `R_0603_1608Metric`)** is connected between the GATE net and GND.
+
+The pull-down resistor ensures that Q1 remains off whenever the logic input is disconnected or in a high-impedance state. The selected value is large enough to minimise static current consumption while remaining low enough to discharge the gate capacitance reliably.
+
+When a 3.3 V logic signal drives the gate through R1, the voltage divider formed by R1 and R2 produces:
+
+```text
+VGS ≈ 3.3 V × 100000/(100000 + 47)
+    ≈ 3.30 V
+```
+
+Therefore, R2 has a negligible effect on gate-drive voltage.
+
+The static power dissipation in R2 when the gate is held high is:
+
+```text
+P = V²/R
+  = (3.3 V)² / 100 kΩ
+  ≈ 0.11 mW
+```
+
+which is negligible.
 
 ### 4.6 Logic Input Connector
 
@@ -234,50 +304,95 @@ Two test points using footprint `TestPoint_THTPad_D1.0mm` are included:
 
 ### 5.1 Board Outline and Mechanical Constraints
 
-The board outline is a closed rectangle on the `Edge.Cuts` layer measuring **39.37 mm × 27.94 mm**, visible in Figures 5, 6, and 7. The outline was verified to be fully closed by the DRC board-outline check at final submission. A copper-to-edge clearance of 0.5 mm is maintained throughout, consistent with the design rules documented in Table 3.
+### 5.1 Board Outline and Dimensions
+
+The final PCB dimensions are **39.37 mm × 27.94 mm** (approximately 1.55 in × 1.10 in), as shown in Figure 5.
+
+The board dimensions were selected by the designer rather than imposed by the project specification. The chosen size provides sufficient area for the required functional blocks while maintaining a compact layout. The board accommodates three connectors (J1, J2, and J3), the MOSFET switching stage, flyback protection diode, decoupling capacitors, LED indicator circuit, and test points without component crowding.
+
+A larger PCB would have increased routing distances unnecessarily, resulting in longer current paths and a less compact design. Conversely, a smaller PCB would have reduced routing flexibility, increased component density, and made it more difficult to maintain appropriate spacing between the power path, gate-drive network, and test points.
+
+The selected dimensions therefore represent a practical compromise between compactness, manufacturability, routing simplicity, and accessibility for assembly and testing.
+
+Figure 5 shows the completed PCB layout within the final board outline.
 > **Figure 5**
 > <img width="1034" height="697" alt="スクリーンショット 2026-05-31 015135" src="https://github.com/user-attachments/assets/ec5f8393-b40a-4153-aba1-9bcd54cf0ac1" />
 
 
 ### 5.2 Component Placement Strategy
 
-Components were placed according to an intended left-to-right power-flow strategy, following the signal and current path from power input through decoupling and load switching to the drain output and gate drive circuits. This is visible in the final PCB layout (Figure 5) and confirmed by the 3D Viewer (Figures 6 and 7).
+Component placement was performed with the objective of minimising current-path length, maintaining a logical signal flow, and simplifying assembly and testing. The resulting placement can be observed in Figures 5 and 6.
 
-As visible in Figure 6 (3D top view), the placement groups are:
+The power input connector **J1** is located on the left side of the PCB, establishing a clear entry point for the 12 V supply. Positioning J1 at the board edge simplifies cable access and provides a convenient location for the decoupling network immediately downstream of the supply input.
 
-- **Left side:** J1 (power input connector), C1 and C2 (decoupling capacitors placed adjacent to J1)
-- **Upper centre:** D1 (SS14 flyback diode, SMA package — visible as the large SMD body)
-- **Upper right:** J2 (load output connector)
-- **Centre:** Q1 (AO3400A SOT-23), R1 (47 Ω gate series), R2 (100 kΩ gate pull-down)
-- **Lower centre-left:** J3 (logic input connector)
-- **Right side:** D2 (LED indicator, 0805), R3 (3.3 kΩ, 0603), TP1 (Drain test point)
-- **Lower centre:** TP2 (GND test point)
+The decoupling capacitors **C1** and **C2** are placed directly adjacent to J1. This minimises the impedance between the supply connector and the capacitors, allowing transient current demands to be supplied locally rather than through the external power wiring. Keeping the decoupling capacitors close to the supply entry point reduces supply-voltage disturbance during load switching.
 
-The silkscreen labels visible in Figure 6 confirm the net names at key connector pins: VIN, GND, LOAD+, LOAD−, SIG, GATE, DRAIN, confirming correct orientation and connectivity.
+The switching MOSFET **Q1** is positioned near the centre of the PCB. This location provides a balanced compromise between several competing requirements. It keeps the high-current DRAIN connection reasonably short, allows a direct connection to the GND network through the SOURCE terminal, and places the MOSFET close to the gate-drive components. Moving Q1 significantly closer to the load connector would reduce DRAIN-trace length but would increase gate-drive routing length and reduce placement flexibility for the surrounding circuitry.
+
+The gate-drive components **R1** and **R2** are placed immediately adjacent to the MOSFET gate connection. Short gate traces reduce parasitic inductance and minimise the possibility of switching transients causing unwanted gate ringing. This arrangement also simplifies routing of the SIG and GATE nets.
+
+The logic connector **J3** is positioned in the lower portion of the PCB, physically separated from the high-current VIN and DRAIN paths. This separation reduces the likelihood of noise coupling between the power-switching circuitry and the external logic interface.
+
+The load connector **J2** is positioned on the right side of the PCB to create a clear left-to-right current-flow path from power input to switched load output. The flyback diode **D1** is located adjacent to J2 so that inductive current can circulate through the shortest possible path when the MOSFET switches off.
+
+The LED indicator components **R3** and **D2** are placed near the DRAIN node that they monitor. This minimises routing complexity and maintains a direct electrical relationship between the indicator circuit and the switching node.
+
+Finally, test points **TP1 (DRAIN)** and **TP2 (GND)** are placed in accessible locations to allow oscilloscope and multimeter measurements without requiring contact with component leads or connector pins. This improves troubleshooting and functional verification during testing.
+
+The final placement produces a logical physical arrangement that follows circuit functionality while supporting manufacturability, inspection, and measurement access.
 
 ### 5.3 Routing Strategy
 
-**High-current traces (VIN, DRAIN):** Power traces were routed at **2.0 mm** width. As visible in Figure 4 (intermediate PCB layout) and Figure 5 (final layout), the F.Cu traces for VIN and DRAIN are clearly wider than the signal traces running to the gate network. The VIN trace routes across the upper portion of the board from J1 to J2. The DRAIN trace connects J2 Pin 2 to the drain pad of Q1.
+The PCB was routed using a combination of F.Cu and B.Cu layers, with routing decisions based on current requirements, noise reduction, and manufacturability.
 
-**Signal traces (GATE, SIG, LED path):** Signal traces were routed at **0.25 mm** width. The SIG trace from J3 to R1, the GATE trace from R1 to the Q1 gate, the R2 pull-down connection, and the LED indicator path all use 0.25 mm width. These nets carry less than 5 mA.
+The highest-current paths are the VIN and DRAIN nets. These traces carry the load current and were therefore assigned a width of 2.0 mm. According to IPC-2152 guidance for 1 oz copper, this width provides adequate current-carrying capability for the 2.0 A design current while maintaining a modest temperature rise. Because the MOSFET itself is capable of substantially more current than the PCB traces are designed to carry, the PCB routing rather than the semiconductor device becomes the practical design limit.
 
-**Vias:** Via sizes used are 0.6 mm diameter / 0.3 mm hole for signal vias and 0.8 mm diameter / 0.4 mm hole for power vias, consistent with the minimum drill rule of 0.3 mm.
+The VIN trace was routed directly from J1 to J2 using the shortest practical path. This minimises conductor resistance and voltage drop between the supply connector and the load connector. The DRAIN trace was similarly routed using a short and direct connection between J2 and Q1 to minimise power loss and reduce the area enclosed by the high-current switching loop.
+
+The GATE and SIG nets carry only small logic-level currents and therefore use a width of 0.25 mm. Wider traces were unnecessary and would have occupied additional routing area without providing any electrical benefit. The gate-drive path was intentionally kept short, with R1 placed immediately adjacent to the gate pin of Q1. Minimising gate-trace length reduces parasitic inductance and lowers the likelihood of switching transients or gate ringing.
+
+Several vias were used to connect traces and copper regions between F.Cu and B.Cu. Via placement was kept to the minimum required for routing flexibility and copper-zone connectivity. Wherever possible, high-current traces were routed without unnecessary layer transitions, since each additional via introduces a small amount of resistance and inductance. Vias associated with the GND network also assist in connecting the F.Cu and B.Cu ground zones, improving overall ground continuity.
+
+Figure 4 shows the intermediate routing stage before the F.Cu ground zone was added. At this stage, only routed tracks and the B.Cu ground zone were present. Figure 5 shows the completed routing after the addition of the F.Cu ground zone and final copper refill. Comparing Figures 4 and 5 demonstrates how the additional F.Cu copper zone completed the GND connectivity for the surface-mount components.
+
+No acute-angle traces were used, and all routing follows standard PCB design practice intended to simplify manufacturing and inspection.
 
 ### 5.4 Ground Plane Implementation
 
-GND copper zones were applied to both F.Cu and B.Cu layers, both assigned to the GND net. The F.Cu GND zone fills the component-side copper between and around the SMD pads. The B.Cu GND zone provides the primary return plane on the bottom layer. The importance of including the F.Cu zone specifically — and the consequences of omitting it — are documented in detail in Section 10 (Problem 1).
+GND copper zones were implemented on both F.Cu and B.Cu layers and assigned to the GND net.
 
-The final layout with zone fill is visible in Figure 5, where the dark blue background represents the board outline and the B.Cu copper zone fill. The intermediate state before the F.Cu zone was added is visible in Figure 4, where the red (F.Cu) copper fill is shown and the GND connections on the top layer were incomplete.
+During PCB development, an intermediate layout revision contained only a B.Cu GND zone. As shown in Figure 4, the top copper layer consisted only of routed traces and did not include an F.Cu copper fill. Although the GND net was correctly defined in the schematic, several GND-connected SMD pads located on F.Cu were not physically connected to the ground network. This condition was later identified through DRC and is discussed in detail in Section 10 (Problem 2).
+
+The final implementation is shown in Figure 5. Compared with Figure 4, the F.Cu GND zone has been added and refilled, providing direct copper connectivity between all GND-connected SMD pads on the component side. The B.Cu zone continues to provide the primary return plane, while the F.Cu zone improves local connectivity and reduces the need for additional routing.
+
+Using GND copper on both layers simplifies routing, improves return-current paths, increases available copper area for heat spreading, and ensures reliable electrical connectivity for all GND nodes.
 
 ### 5.5 Silkscreen
 
-Reference designators and net labels are included on the F.Cu silkscreen. As confirmed by the 3D Viewer top view (Figure 6), all labels are readable and positioned clear of pad areas and courtyard boundaries. Reference designator positions were adjusted during the design iteration to resolve silkscreen clearance warnings encountered during DRC.
+Reference designators and functional labels were included on the F.SilkS layer to improve assembly and troubleshooting.
+
+As confirmed by the 3D Viewer (Figure 6), all component reference designators remain readable and clear of pads, solder-mask openings, and courtyard boundaries. During PCB development, several reference designators were repositioned to resolve silkscreen-clearance warnings identified by DRC.
+
+The final silkscreen placement allows all major components, connectors, and test points to be identified directly from the assembled PCB without requiring reference to the schematic.
 
 ### 5.6 3D Viewer Inspection
 
-Figure 6 shows the top view from the KiCad 3D Viewer. All SMD components are visible on the top surface. The SOT-23 package (Q1), the SMA diode (D1), the 0805 capacitors and LED, the 0603 resistors, and the pin headers are all present and oriented consistently with the schematic. The test points TP1 and TP2 are visible as yellow pads. The board outline and GND copper fill are confirmed by the board shape.
+Figure 6 shows the completed PCB in the KiCad 3D Viewer from the top side.
 
-Figure 7 shows the bottom view, confirming that the through-hole connector legs (J1, J2, J3) and test point pins protrude through the board and are available for soldering.
+The inspection was used to verify component orientation, footprint placement, and overall mechanical consistency before manufacturing-file generation. The AO3400A MOSFET (Q1), SS14 diode (D1), capacitors (C1 and C2), resistors (R1–R3), LED indicator (D2), and connectors (J1–J3) are all visible and positioned consistently with the schematic.
+
+Particular attention was paid to:
+
+- MOSFET orientation and pin assignment
+- Flyback diode polarity
+- Pin-1 orientation of connectors
+- Test-point accessibility
+- Silkscreen readability
+- Component-to-component clearance
+
+The locations of TP1 (DRAIN) and TP2 (GND) can also be confirmed in Figure 6, demonstrating convenient access for oscilloscope probing and troubleshooting.
+
+Figure 7 shows the underside of the PCB. The through-hole connector pins and test-point leads are visible extending through the board and available for soldering. Figure 7 also confirms that no SMD components are mounted on the bottom layer, simplifying assembly because all surface-mount components are located on a single side of the PCB.
 > **Figure 6**
 > <img width="1020" height="751" alt="スクリーンショット 2026-05-31 062012" src="https://github.com/user-attachments/assets/99108505-532c-4583-a931-2396b213c7aa" />
 > **Figure 7**
@@ -291,9 +406,16 @@ Figure 7 shows the bottom view, confirming that the through-hole connector legs 
 
 ### 6.1 Decoupling Capacitor Placement
 
-C1 (100 nF, `C_0603_1608Metric`) and C2 (10 µF, `C_0805_2012Metric`) are placed close to the power input connector J1, as shown in Figures 5 and 6. Locating the decoupling network near the supply entry point reduces the impedance between the external supply and the local PCB power distribution network.
+C1 (100 nF, `C_0603_1608Metric`) and C2 (10 µF, `C_0805_2012Metric`) are placed immediately adjacent to the power-input connector J1, as shown in Figures 5 and 6. Positioning the decoupling network near the supply entry point minimises the impedance between the external power source and the local PCB power-distribution network.
 
-The 100 nF ceramic capacitor provides high-frequency decoupling, while the 10 µF capacitor provides local bulk energy storage. Together, they help maintain a stable supply voltage during load-switching events and reduce sensitivity to supply-cable inductance.
+The capacitor values were selected to address different frequency ranges of supply disturbance:
+
+- **C1 (100 nF ceramic)** provides low impedance at high frequencies and suppresses fast switching transients.
+- **C2 (10 µF ceramic)** provides bulk energy storage and supports lower-frequency load-current variations.
+
+The combination of a 100 nF capacitor and a larger bulk capacitor is a widely used decoupling strategy because no single capacitor maintains low impedance across the entire frequency spectrum.
+
+Both capacitors are rated at 16 V, providing a voltage margin of approximately 33% above the maximum 12 V supply voltage. This satisfies the common engineering practice of selecting capacitor voltage ratings above the expected operating voltage to improve reliability and reduce the effects of DC-bias capacitance reduction.
 
 ### 6.2 Return Current Path and Loop Area Minimisation
 
@@ -316,59 +438,110 @@ Reducing loop area lowers parasitic inductance and helps minimise electromagneti
 
 ### 6.3 Ground Plane Implementation
 
-A GND copper zone is implemented on both F.Cu and B.Cu and assigned to the GND net. The final implementation is shown in Figure 5.
+The final PCB uses GND copper zones on both F.Cu and B.Cu layers, as shown in Figure 5.
 
-During development, an earlier PCB revision contained only a B.Cu GND zone. As discussed in Section 10, this resulted in several GND-connected pads on F.Cu remaining electrically unconnected, which was detected by DRC. The final design resolves this issue by providing GND copper on both layers.
+The dual-layer implementation provides low-impedance return-current paths, improves connectivity between GND nodes, and increases available copper area for thermal spreading. The detailed design iteration that led to this implementation is discussed in Section 10 (Problem 2).
 
-The dual-layer ground implementation improves electrical connectivity, simplifies routing, and provides additional copper area for current return paths.
+By maintaining continuous GND copper on both layers, the design reduces routing complexity and improves overall electrical robustness.
 
 ### 6.4 Gate Drive and EMI Considerations
 
-The MOSFET gate is driven through R1 (47 Ω), which is connected in series between the SIG input and the AO3400A gate.
+The MOSFET gate is driven through R1 (47 Ω), connected in series between the SIG input and the AO3400A gate.
 
-The resistor limits instantaneous gate-charging current and reduces the edge rate of the gate voltage transition. Although the circuit is intended for simple on/off load switching rather than high-frequency PWM operation, controlling switching-edge speed can help reduce high-frequency noise generation.
+The AO3400A datasheet specifies a typical input capacitance of approximately:
 
-R2 (100 kΩ) provides a pull-down path from the gate to GND. This ensures that Q1 remains turned off whenever the logic input is disconnected or left floating.
+```text
+Ciss ≈ 560 pF
+```
 
-As shown in Figures 5 and 6, R1 is placed close to the MOSFET gate connection, keeping the gate-routing length short and reducing susceptibility to unwanted noise pickup.
+The resulting gate-drive RC time constant is:
+
+```text
+τ = R × C
+  = 47 Ω × 560 pF
+  ≈ 26 ns
+```
+
+The corresponding approximate 10–90% rise time is:
+
+```text
+tr ≈ 2.2τ
+   ≈ 57 ns
+```
+
+This switching speed is more than adequate for the intended DC on/off switching application while still limiting peak gate-charging current and reducing high-frequency spectral content.
+
+R2 (100 kΩ) provides a pull-down path from the gate to GND. When a 3.3 V logic signal is applied, the voltage-divider effect between R1 and R2 is negligible:
+
+```text
+VGS ≈ 3.3 V ×
+      (100000 / (100000 + 47))
+    ≈ 3.30 V
+```
+
+Thus, R2 does not materially reduce the gate-drive voltage during normal operation.
+
+The power dissipated in R2 when the gate is held high is:
+
+```text
+P = V²/R
+  = (3.3 V)² / 100000 Ω
+  ≈ 0.11 mW
+```
+
+which is negligible.
+
+As shown in Figures 5 and 6, R1 is positioned immediately adjacent to the MOSFET gate pin. Keeping the gate-routing length short reduces parasitic inductance and minimises susceptibility to noise pickup, helping to prevent unwanted gate ringing during switching transitions.
 
 ### 6.5 Thermal Analysis
 
-The dominant power loss in Q1 is MOSFET conduction loss, which can be estimated from:
+The dominant power loss in Q1 is MOSFET conduction loss, which can be estimated using:
 
-P = I² × R_DS(on)
+```text
+P = I² × RDS(on)
+```
 
-Using the AO3400A typical on-resistance of approximately 50 mΩ at logic-level gate drive, the estimated conduction losses are shown in Table 5.
+The AO3400A datasheet specifies an on-resistance of approximately 50 mΩ at a gate-drive voltage of \(V_{GS}=4.5\ \text{V}\). Because this design is intended to operate from either 3.3 V or 5 V logic sources, the actual on-resistance depends on the applied gate voltage. At 3.3 V gate drive, the effective \(R_{DS(on)}\) is expected to be somewhat higher than the 4.5 V specification.
 
-**Table 5: Estimated MOSFET conduction loss**
+To provide a conservative engineering estimate, a value of 80 mΩ was assumed for thermal calculations. This value is representative of operation between the datasheet's 2.5 V and 4.5 V drive conditions and therefore better reflects expected performance when driven from 3.3 V logic.
+
+**Table 5: Estimated MOSFET Conduction Loss**
 
 | Load Current | Assumed R_DS(on) | Power Dissipation |
 |-------------|------------------|------------------|
-| 1.0 A | 50 mΩ (typ.) | 0.05 W |
-| 2.0 A | 50 mΩ (typ.) | 0.20 W |
+| 1.0 A | 80 mΩ | 0.08 W |
+| 2.0 A | 80 mΩ | 0.32 W |
 
-A simplified thermal estimate can be obtained using:
-
-```text
-ΔT_J = P × θ_JA
-```
-
-Assuming:
+The AO3400A datasheet specifies a junction-to-ambient thermal resistance of approximately:
 
 ```text
-P = 0.20 W
-θ_JA ≈ 100–300 °C/W
+θJA ≈ 100 °C/W
 ```
 
-the estimated junction-temperature rise is:
+for the recommended PCB mounting condition.
+
+Using the worst-case design current of 2.0 A:
 
 ```text
-ΔT_J ≈ 20–60 °C
+ΔTJ = P × θJA
+     = 0.32 W × 100 °C/W
+     ≈ 32 °C
 ```
 
-The actual thermal performance depends strongly on PCB copper area, airflow, mounting conditions, and operating duty cycle. Because the AO3400A datasheet specifies different thermal resistances for different PCB conditions, the calculation above should be regarded as an engineering estimate rather than a guaranteed worst-case result.
+Assuming an ambient temperature of 25 °C:
 
-As shown in Figure 5, the MOSFET is connected to relatively large copper areas through the source and drain connections. These copper regions provide additional heat spreading and are expected to reduce the effective thermal resistance compared with a minimal-footprint SOT-23 installation.
+```text
+TJ ≈ 25 °C + 32 °C
+   ≈ 57 °C
+```
+
+This estimated junction temperature remains well below the AO3400A maximum rated junction temperature of 150 °C.
+
+The calculation above is intentionally conservative because it assumes a higher on-resistance than the 4.5 V datasheet value while simultaneously using the full 2.0 A design current. In normal operation, where the expected load current is approximately 0.5–1.0 A, the actual power dissipation and junction temperature rise will be substantially lower.
+
+As shown in Figure 5, Q1 is connected to relatively large copper areas through both the source and drain terminals. These copper regions provide additional heat spreading beyond the minimum datasheet test condition and are expected to reduce the effective thermal resistance further.
+
+Consequently, thermal performance is not expected to be the limiting factor for the intended operating range. Instead, PCB trace current capacity and connector ratings become the primary constraints of the design.
 
 **Table 6: Trace Width Design Summary**
 
@@ -379,7 +552,6 @@ As shown in Figure 5, the MOSFET is connected to relatively large copper areas t
 | GATE | < 5 mA | 0.25 mm | Logic signal |
 | SIG | < 5 mA | 0.25 mm | Logic input |
 | LED path | ~3 mA | 0.25 mm | Indicator current only |
-
 ## 7. Manufacturing Output and DFM
 
 ### 7.1 Board Outline
@@ -416,13 +588,19 @@ Excellon drill files were generated alongside the Gerber files.
 
 ### 7.5 Gerber Viewer Inspection
 
-The generated Gerber files were inspected in a Gerber viewer prior to submission. The following checks were confirmed:
+The generated Gerber and drill files were inspected using a Gerber viewer prior to submission to verify that the manufacturing data matched the intended PCB design.
 
-- Board outline is complete and closed on Edge.Cuts
-- Copper pads are present on F.Cu and B.Cu at expected locations
-- Solder mask openings correspond to pad locations
-- Silkscreen text does not encroach on pads
-- Drill hits correspond to pad centres
+The inspection confirmed that the board outline was correctly defined as a single closed contour on the Edge.Cuts layer, with no gaps or overlapping segments that could cause fabrication errors.
+
+The F.Cu and B.Cu layers were checked to ensure that all copper features appeared in the expected locations. Power traces, signal traces, copper zones, and component pads matched the PCB layout shown in Figure 5.
+
+The solder-mask layers were reviewed to confirm that all pads contained appropriate mask openings and that no unintended mask clearances were present on copper features.
+
+The silkscreen layers were inspected to verify that reference designators and markings remained readable and did not overlap exposed copper pads or drill locations.
+
+Finally, the Excellon drill data were examined to confirm that all plated through-holes, connector pins, test points, and vias were centred correctly within their corresponding pad geometries.
+
+No discrepancies were identified during the Gerber-viewer inspection, indicating that the manufacturing files accurately represent the final PCB layout.
 
 ### 7.6 Assembly Considerations
 
@@ -481,21 +659,25 @@ Table 8 summarises the final verification status of the project.
 
 ### 9.1 ERC Status — Net Label Warnings
 
-The ERC, shown in Figure 2, reports **0 errors** and **2 warnings**. Both warnings arise from the same cause: KiCad detects that two different labels are attached to the same net node and notifies the designer which name will take precedence in the netlist.
+The ERC result is shown in Figure 2. The ERC window reports **0 errors** and **2 warnings**, confirming that no electrical-rule violations remain in the final schematic. The two warnings listed in the ERC results are both related to multiple labels being applied intentionally to the same electrical node.
 
 > **Figure 2**
 > <img width="1237" height="609" alt="スクリーンショット 2026-05-30 122352" src="https://github.com/user-attachments/assets/ca5ce4cb-b1c2-4140-8508-9ffbbd8d4736" />
 
 
+As visible in Figure 2, the ERC summary shows a zero-error count together with two warning entries. These warnings arise because KiCad detects that different labels have been attached to the same electrical node and therefore informs the designer which label will be used as the canonical net name in the generated netlist.
+
 The two warnings are:
 
-1. **`Both DRAIN and LOAD- are attached to the same items; DRAIN will be used in netlists`**  
-   The node at Q1 drain / J2 Pin 2 carries both the `DRAIN` net label and the `LOAD−` net label. Both are intentionally present — `LOAD−` describes the connector function while `DRAIN` describes the MOSFET node — but they refer to the same copper node. KiCad reports this as a warning, not an error, since both labels are electrically correct. The ERC engine will use `DRAIN` as the canonical net name in any exported netlist.
+1. **`Both DRAIN and LOAD- are attached to the same items; DRAIN will be used in netlists`**
 
-2. **`Both GND and SOURCE are attached to the same items; GND will be used in netlists`**  
-   The node at Q1 source carries both the GND power symbol and a `SOURCE` net label. This is again intentional: `SOURCE` was added for schematic readability. KiCad correctly identifies these as the same node and will use `GND` as the canonical name.
+   The node connecting Q1 drain and J2 Pin 2 carries both the `DRAIN` net label and the `LOAD−` functional label. The two labels intentionally describe the same electrical node from different perspectives: `DRAIN` identifies the MOSFET terminal, while `LOAD−` identifies the load connector terminal. Because both labels refer to the same copper connection, KiCad reports a warning and selects `DRAIN` as the canonical net name for netlist generation.
 
-These warnings are acknowledged and accepted. No functional or manufacturing consequence results from either warning, as both cases describe correct electrical connections. The ERC reports **0 errors**.
+2. **`Both GND and SOURCE are attached to the same items; GND will be used in netlists`**
+
+   The node at the source terminal of Q1 carries both the GND power symbol and the `SOURCE` net label. The `SOURCE` label was included to improve schematic readability and clearly identify the MOSFET terminal. Since both labels intentionally refer to the same electrical node, KiCad reports a warning and uses `GND` as the canonical net name.
+
+These warnings are acknowledged and accepted because they do not indicate incorrect connectivity. In both cases, the duplicated labels were intentionally added to improve schematic readability while referring to electrically identical nodes. Consequently, the ERC completed successfully with **0 errors** and only the two expected warnings shown in Figure 2.
 
 ---
 
@@ -628,7 +810,7 @@ Together, these issues demonstrate the complementary roles of ERC and DRC. ERC i
 
 ### 11.3 Compromises and Limitations
 
-The AO3400A MOSFET was selected in a SOT-23 package to maintain a compact PCB footprint. As discussed in Section 6.5, estimated conduction losses remain relatively low for the intended operating range. However, thermal performance in small packages depends strongly on PCB copper area, ambient temperature, airflow, and operating conditions. For applications requiring sustained operation near the upper current limit, a larger package such as SOT-223 or DPAK would provide additional thermal margin.
+The AO3400A MOSFET was selected in a SOT-23 package to maintain a compact PCB footprint and minimise board area. As discussed in Section 6.5, conduction losses are expected to remain relatively low within the intended operating range. However, the actual MOSFET on-resistance depends on gate-drive voltage. The commonly cited value of approximately 50 mΩ corresponds to \(V_{GS}=4.5\ \text{V}\); operation from a 3.3 V logic source will result in a somewhat higher \(R_{DS(on)}\), increasing conduction loss relative to the simplified estimate. Furthermore, thermal performance in small packages depends strongly on PCB copper area, ambient temperature, airflow, and operating conditions. For applications requiring sustained operation near the 2 A design-current limit, a larger package such as SOT-223 or DPAK would provide additional thermal margin.
 
 The design uses standard 2.54 mm pin-header connectors for J1 and J2. These connectors are inexpensive, widely available, and suitable for laboratory use and prototype evaluation. Nevertheless, screw-terminal connectors would provide improved mechanical robustness and may be preferable for applications involving frequent cable installation or higher continuous currents.
 
