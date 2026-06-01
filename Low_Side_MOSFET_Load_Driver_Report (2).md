@@ -506,7 +506,7 @@ The dominant power loss in Q1 is MOSFET conduction loss, which can be estimated 
 P = I² × RDS(on)
 ```
 
-The AO3400A datasheet specifies an on-resistance of approximately 50 mΩ at a gate-drive voltage of \(V_{GS}=4.5\ \text{V}\). Because this design is intended to operate from either 3.3 V or 5 V logic sources, the actual on-resistance depends on the applied gate voltage. At 3.3 V gate drive, the effective \(R_{DS(on)}\) is expected to be somewhat higher than the 4.5 V specification.
+The AO3400A datasheet specifies an on-resistance of approximately 50 mΩ at a gate-drive voltage of \(V_{GS}=4.5\ \text{V}\)[1]. Because this design is intended to operate from either 3.3 V or 5 V logic sources, the actual on-resistance depends on the applied gate voltage. At 3.3 V gate drive, the effective \(R_{DS(on)}\) is expected to be somewhat higher than the 4.5 V specification.
 
 To provide a conservative engineering estimate, a value of 80 mΩ was assumed for thermal calculations. This value lies between the datasheet on-resistance specified at \(V_{GS}=2.5\ \text{V}\) and \(V_{GS}=4.5\ \text{V}\), and therefore provides a reasonable approximation for operation from a 3.3 V logic source.
 
@@ -909,24 +909,21 @@ https://www.vishay.com/search/?searchChoice=part&query=SS14
 
 [3] KiCad Documentation Team,
 KiCad 8 Documentation.
-Available:
-https://docs.kicad.org/
+https://docs.kicad.org/8.0/en/
 
 [4] KiCad Documentation Team,
 Electrical Rules Checker (ERC).
-Available:
-https://docs.kicad.org/
+https://docs.kicad.org/8.0/en/eeschema/eeschema.html
 
 [5] KiCad Documentation Team,
 Design Rules Checker (DRC).
-Available:
-https://docs.kicad.org/
+https://docs.kicad.org/8.0/en/pcbnew/pcbnew.html
 
 [6] Microchip Technology,
 AN947: Power MOSFET Basics and Gate Drive Considerations.
 
 [7] IPC,
-IPC-2221: Generic Standard on Printed Board Design.
+IPC-2152: Standard for Determining Current-Carrying Capacity in Printed Board Design.
 
 [8] Würth Elektronik,
 PCB Layout Recommendations for Power Electronics.
