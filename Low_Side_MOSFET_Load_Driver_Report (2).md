@@ -109,9 +109,9 @@ The board was designed to the following stackup and fabrication parameters:
 
 ### 3.3 Design Rules
 
-The KiCad Board Setup (Design Rules → Constraints) was configured as documented in Table 3. The values selected are consistent with the capabilities of standard two-layer PCB fabrication services.
+The KiCad Board Setup (Design Rules → Constraints) was configured as documented in Table 2. The values selected are consistent with the capabilities of standard two-layer PCB fabrication services.
 
-**Table 3: Design rules applied in KiCad**
+**Table 2: Design rules applied in KiCad**
 
 | Rule | Value | Rationale |
 |------|-------|-----------|
@@ -126,9 +126,9 @@ The KiCad Board Setup (Design Rules → Constraints) was configured as documente
 
 ### 3.4 Pre-defined Track and Via Sizes
 
-Two track widths and two via sizes were configured in KiCad's Pre-defined Sizes panel and applied consistently throughout routing. These are summarised in Table 4.
+Two track widths and two via sizes were configured in KiCad's Pre-defined Sizes panel and applied consistently throughout routing. These are summarised in Table 3.
 
-**Table 4: Pre-defined track widths and via sizes**
+**Table 3: Pre-defined track widths and via sizes**
 
 | Type | Width / Diameter | Hole | Application |
 |------|-----------------|------|-------------|
@@ -202,10 +202,10 @@ Q1 (AO3400A, `Package_TO_SOT_SMD:SOT-23`) is the primary switching device[1]. Th
 
 The AO3400A was selected because:
 
-- Gate threshold voltage \(V_{GS(th)} = 0.45\text{–}1.35\ \text{V}\) (at 250 µA), allowing reliable operation from both 3.3 V and 5 V logic sources.
+- Gate threshold voltage \(V_{GS(th)} = 0.45\text{–}1.35\ \text{V}\) at \(I_D = 250\ \mu\text{A}\) [1]. This parameter indicates only the onset of conduction and should not be interpreted as the voltage required for full enhancement.
 
-- Low on-resistance. The datasheet specifies approximately 50 mΩ at \(V_{GS}=4.5\ \text{V}\); however, because this design is intended to operate from either 3.3 V or 5 V logic, the actual \(R_{DS(on)}\) at 3.3 V drive will be somewhat higher than the 4.5 V specification. To account for this uncertainty, the thermal analysis presented in Section 6.5 uses a more conservative assumed value of 80 mΩ when estimating conduction losses and junction-temperature rise.
-
+- Low on-resistance. The datasheet specifies \(R_{DS(on)}\) values at both \(V_{GS}=2.5\ \text{V}\) and \(V_{GS}=4.5\ \text{V}\) [1], demonstrating that the device is intended for logic-level gate drive. Because this design may be operated from either 3.3 V or 5 V logic sources, the actual \(R_{DS(on)}\) at 3.3 V is expected to lie between the datasheet values for 2.5 V and 4.5 V. To account for this uncertainty, the thermal analysis presented in Section 6.5 uses a conservative assumed value of 80 mΩ when estimating conduction losses and junction-temperature rise.
+  
 - Continuous drain current rating of 5.7 A at 25 °C (package-limited), providing substantial margin above the nominal operating current range of 0.5–1.0 A. In practice, PCB trace current capability and thermal considerations limit the design current to 2.0 A, making the MOSFET itself non-limiting within the intended operating range.
 
 - Drain-source voltage rating \(V_{DS}=30\ \text{V}\), exceeding the minimum design requirement of 14.4 V (\(1.2 \times V_{IN}\) for a 12 V supply) and providing additional margin for switching transients.
@@ -371,6 +371,10 @@ The final implementation is shown in Figure 5. Compared with Figure 4, the F.Cu 
 
 Using GND copper on both layers simplifies routing, improves return-current paths, increases available copper area for heat spreading, and ensures reliable electrical connectivity for all GND nodes.
 
+> **Figure 4**
+> <img width="1039" height="710" alt="スクリーンショット 2026-05-31 012622" src="https://github.com/user-attachments/assets/5d604998-b782-4ddc-a777-2b02d3f5e552" />
+
+
 ### 5.5 Silkscreen
 
 Reference designators and functional labels were included on the F.SilkS layer to improve assembly and troubleshooting.
@@ -508,16 +512,16 @@ P = I² × RDS(on)
 
 The AO3400A datasheet specifies an on-resistance of approximately 50 mΩ at a gate-drive voltage of \(V_{GS}=4.5\ \text{V}\)[1]. Because this design is intended to operate from either 3.3 V or 5 V logic sources, the actual on-resistance depends on the applied gate voltage. At 3.3 V gate drive, the effective \(R_{DS(on)}\) is expected to be somewhat higher than the 4.5 V specification.
 
-To provide a conservative engineering estimate, a value of 80 mΩ was assumed for thermal calculations. This value lies between the datasheet on-resistance specified at \(V_{GS}=2.5\ \text{V}\) and \(V_{GS}=4.5\ \text{V}\), and therefore provides a reasonable approximation for operation from a 3.3 V logic source.
+To provide a conservative engineering estimate, a value of 80 mΩ was assumed for thermal calculations. This value is significantly higher than the typical on-resistance values specified in the AO3400A datasheet for both VGS = 2.5 V and VGS = 4.5 V [1]. Consequently, the thermal analysis intentionally overestimates conduction losses and junction-temperature rise, providing additional design margin for operation from a 3.3 V logic source.
 
-**Table 5: Estimated MOSFET Conduction Loss**
+**Table 4: Estimated MOSFET Conduction Loss**
 
 | Load Current | Assumed R_DS(on) | Power Dissipation |
 |-------------|------------------|------------------|
 | 1.0 A | 80 mΩ | 0.08 W |
 | 2.0 A | 80 mΩ | 0.32 W |
 
-The AO3400A datasheet specifies a junction-to-ambient thermal resistance of approximately:
+The AO3400A datasheet specifies a junction-to-ambient thermal resistance of approximately[1]:
 
 ```text
 θJA ≈ 100 °C/W
@@ -548,7 +552,7 @@ As shown in Figure 5, Q1 is connected to relatively large copper areas through b
 
 Consequently, thermal performance is not expected to be the limiting factor for the intended operating range. Instead, PCB trace current capacity and connector ratings become the primary constraints of the design.
 
-**Table 6: Trace Width Design Summary**
+**Table 5: Trace Width Design Summary**
 
 | Net | Design Current | Selected Width | Rationale |
 |------|------|------|------|
@@ -568,7 +572,7 @@ The board outline is a closed rectangle on the `Edge.Cuts` layer measuring 39.37
 
 ### 7.2 Design Rules and Clearances
 
-The design rules are documented in Table 3. The actual minimum track width used (0.25 mm for signals, 2.0 mm for power) exceeds the 0.2 mm rule minimum, providing fabrication margin. The minimum drill size used is 0.3 mm for signal vias, consistent with standard two-layer PCB services.
+The design rules are documented in Table 2. The actual minimum track width used (0.25 mm for signals, 2.0 mm for power) exceeds the 0.2 mm rule minimum, providing fabrication margin. The minimum drill size used is 0.3 mm for signal vias, consistent with standard two-layer PCB services.
 
 Drill sizes used in the design:
 
@@ -618,9 +622,9 @@ All SMD components are on F.Cu only, enabling single-sided SMD assembly. Through
 
 ## 8. Bill of Materials and Sourcing
 
-Table 7 provides the complete Bill of Materials using the exact footprints as placed in the KiCad PCB file.
+Table 6 provides the complete Bill of Materials using the exact footprints as placed in the KiCad PCB file.
 
-**Table 7: Bill of Materials**
+**Table 6: Bill of Materials**
 
 | Ref | Description | Value | Footprint | MPN (Example) | Qty | Key Rating |
 |-----|-------------|-------|-----------|---------------|-----|------------|
@@ -644,9 +648,9 @@ Table 7 provides the complete Bill of Materials using the exact footprints as pl
 
 ## 9. Results and Verification
 
-Table 8 summarises the final verification status of the project.
+Table 7 summarises the final verification status of the project.
 
-**Table 8: Final verification results**
+**Table 7: Final verification results**
 
 | Check | Result | Evidence |
 |-------|--------|----------|
@@ -783,9 +787,6 @@ Examples reported by DRC included:
 - R2 Pad 2 (GND) ↔ Q1 Source Pad (GND)
 
 Figure 4 shows the PCB layout at the stage when these errors occurred.
-
-> **Figure 4**
-> <img width="1039" height="710" alt="スクリーンショット 2026-05-31 012622" src="https://github.com/user-attachments/assets/5d604998-b782-4ddc-a777-2b02d3f5e552" />
 
 Observe that Figure 4 contains routed copper traces but does not yet contain a continuous GND copper zone on the F.Cu layer. Although the affected pads were correctly assigned to the GND net in the schematic and netlist, no valid physical copper connection existed between several of the associated top-layer pads.
 
@@ -924,6 +925,7 @@ https://docs.kicad.org/8.0/en/pcbnew/pcbnew.html
 AN947: Power MOSFET Basics and Gate Drive Considerations.
 
 [7] IPC,
+IPC-2221: Generic Standard on Printed Board Design.
 IPC-2152: Standard for Determining Current-Carrying Capacity in Printed Board Design.
 
 [8] Würth Elektronik,
